@@ -5,13 +5,21 @@
 #define MAX_PISOS 5
 #define MAX_MATRICULA_L 10
 #define MAX_CODIGO 5
+#define MAX_MOTIVO 20
+#define MAX_CODIGO 4
+#define MAX_NOME_T 10
+#define MAX_ID 4
+#define MAX_COD_TARIFA 3
+#define MAX_OBS 30
+#define MAX_NOME_PARQUE 10
+#define MAX_MORADA_PARQUE 30
 
 typedef struct lugar{
     char fila;
     int lugar;
     char estado;
-    char motivo[20];
-    char codigo[4];
+    char motivo[MAX_MOTIVO];
+    char codigo[MAX_CODIGO];
     int num_piso;
 } Lugar;
 
@@ -26,8 +34,8 @@ typedef struct piso{
 typedef struct parque{
     Piso pisos[MAX_PISOS];
     int num_pisos;
-    char nome[10];
-    char morada[30];
+    char nome[MAX_NOME_PARQUE];
+    char morada[MAX_MORADA_PARQUE];
     int total_lugares;
     int lugares_ocupados;
     int lugares_livres;
@@ -39,14 +47,14 @@ typedef struct tarifario{
 } Tarifario;
 
 typedef struct tarifa{
-	char nome[10];
-	char id[4];
+	char nome[MAX_NOME_T];
+	char id[MAX_ID];
 	int periodo;
 	float valor_hora;
 	Horario inicio;
 	Horario fim;
 	char tp_tarifa; //H de horario ou D se for diario
-	char cod_tarifa[3];
+	char cod_tarifa[MAX_COD_TARIFA];
 	int dias; //T1 e T2=0 T3=1 T4=-1(porque nao ha limite)
 }Tarifa;
 
@@ -79,5 +87,5 @@ typedef estacionamento{
 	Data data_saida;
 	Horario hora_saida;
 	float valor_pago;
-	char observacoes[30];
+	char observacoes[MAX_OBS];
 }Estacionamento;
