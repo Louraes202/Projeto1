@@ -4,7 +4,6 @@
 
 int main() {
     Parque parque;
-    Tarifario tarifario;
 
     int opcao;
 
@@ -21,7 +20,7 @@ int main() {
                 configurar_parque(&parque);
                 break;
             case 2:
-                configurar_tarifario(&tarifario);
+                configurar_tarifario(&parque.tarifa_parque);
                 break;
             case 3:
                 printf("A sair...\n");
