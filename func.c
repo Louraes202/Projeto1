@@ -261,5 +261,11 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
 
 void Ler_estacionamento (Estacionamento *estacionamento) {
     printf("Digite o número de entrada do estacionamento");
-    scanf("%d", &estacionamento->numE)
+    scanf("%d", &estacionamento->numE);
+
+    printf("Digite a matrícula do veículo");
+    scanf("%s", &estacionamento->matricula);
+
+    printf("Digite a data de entrada do veículo (dd/mm/aaaa)");
+    scanf("%d %d %d", &estacionamento->entrada)
 }
