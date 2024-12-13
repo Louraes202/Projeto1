@@ -1,7 +1,19 @@
 #include <stdio.h>
 #include "estacionamento.h"
+#include <locale.h>  // Para usar setlocale()
+#include <windows.h>
+
 
 int main() {
+
+    // Definir a localidade para UTF-8
+    setlocale(LC_ALL, "pt_PT.UTF-8");
+
+    // Configurar UTF-8 no Windows
+    #ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    #endif
+
     Parque parque;
     Tarifario tarifario;
 
