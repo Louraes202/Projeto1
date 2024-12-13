@@ -6,14 +6,19 @@
 // ------------------------ Configuração do Parque ------------------------
 
 void configurar_parque(Parque *parque) {
-    printf("Digite o nome do parque: ");
-    scanf("%s", parque->nome);
+    printf("Digite o nome do parque (até 10 caracteres): ");
+    scanf("%10s", parque->nome);
 
-    printf("Digite a morada do parque: ");
+    printf("Digite a morada do parque (até 30 caracteres): ");
     scanf(" %[^\n]", parque->morada);
 
-    printf("Quantos pisos terá o parque? (1-%d): ", MAX_PISOS);
-    scanf("%d", &parque->num_pisos);
+    do {
+        printf("Quantos pisos terá o parque? (1-%d): ", MAX_PISOS);
+        scanf("%d", &parque->num_pisos);
+        if (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS) {
+            printf("Erro: O número de pisos deve estar entre 1 e %d.\n", MAX_PISOS);
+        }
+    } while (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS);
 
     int total_lugares = 0;
 
@@ -26,35 +31,53 @@ void configurar_parque(Parque *parque) {
     parque->lugares_ocupados = 0;
 
     gravar_configuracao_parque(parque);
+
+    printf("Configuração do parque concluída com sucesso!\n");
 }
 
 void configurar_piso(Piso *piso, int numero, int *total_lugares) {
     piso->numero = numero;
+    printf("Configurar piso %d\n", piso->numero);
 
-    printf("Configurar piso %d\n", numero);
-    printf("Número de filas (1-%d): ", MAX_FILAS);
-    int filas;
-    scanf("%d", &filas);
+    int filas, lugares;
 
-    printf("Lugares por fila (1-%d): ", MAX_LUGARES);
-    int lugares;
-    scanf("%d", &lugares);
+    // Validação do número de filas
+    do {
+        printf("Número de filas no piso %d (1-%d): ", piso->numero, MAX_FILAS);
+        scanf("%d", &filas);
+        if (filas < 1 || filas > MAX_FILAS) {
+            printf("Erro: O número de filas deve estar entre 1 e %d.\n", MAX_FILAS);
+        }
+    } while (filas < 1 || filas > MAX_FILAS);
 
+    // Validação do número de lugares por fila
+    do {
+        printf("Lugares por fila no piso %d (1-%d): ", piso->numero, MAX_LUGARES);
+        scanf("%d", &lugares);
+        if (lugares < 1 || lugares > MAX_LUGARES) {
+            printf("Erro: O número de lugares por fila deve estar entre 1 e %d.\n", MAX_LUGARES);
+        }
+    } while (lugares < 1 || lugares > MAX_LUGARES);
+
+    // Configuração dos lugares no piso
     for (int f = 0; f < filas; f++) {
         for (int l = 0; l < lugares; l++) {
             Lugar *lugar = &piso->lugares[f][l];
             lugar->fila = 'A' + f;
             lugar->lugar = l + 1;
-            lugar->estado = 'L';
-            lugar->num_piso = numero;
-            sprintf(lugar->codigo, "%d%c%02d", numero, 'A' + f, l + 1);
+            lugar->estado = 'L'; // Livre
+            lugar->num_piso = piso->numero;
+            sprintf(lugar->codigo, "%d%c%02d", piso->numero, 'A' + f, l + 1);
         }
     }
 
     piso->livres = filas * lugares;
     piso->ocupados = 0;
     piso->indisponiveis = 0;
+
     *total_lugares += filas * lugares;
+
+    printf("Piso %d configurado com sucesso!\n", piso->numero);
 }
 
 void gravar_configuracao_parque(const Parque *parque) {
@@ -66,7 +89,8 @@ void gravar_configuracao_parque(const Parque *parque) {
 
     fprintf(file, "%s\n%s\n%d\n", parque->nome, parque->morada, parque->num_pisos);
     for (int i = 0; i < parque->num_pisos; i++) {
-        fprintf(file, "Piso %d: %d lugares livres\n", parque->pisos[i].numero, parque->pisos[i].livres);
+        Piso piso = parque->pisos[i];
+        fprintf(file, "Piso %d: %d lugares livres\n", piso.numero, piso.livres);
     }
 
     fclose(file);
@@ -80,23 +104,17 @@ int carregar_configuracao_parque(Parque *parque) {
         return 0; // Falha
     }
 
-    // Ler o nome do parque
     fgets(parque->nome, sizeof(parque->nome), file);
     parque->nome[strcspn(parque->nome, "\n")] = 0; // Remover o '\n'
 
-    // Ler a morada do parque
     fgets(parque->morada, sizeof(parque->morada), file);
     parque->morada[strcspn(parque->morada, "\n")] = 0; // Remover o '\n'
 
-    // Ler o número de pisos
     fscanf(file, "%d\n", &parque->num_pisos);
-
-    // Inicializar os pisos
     for (int i = 0; i < parque->num_pisos; i++) {
-        int livres;
-        fscanf(file, "Piso %*d: %d lugares livres\n", &livres);
-        parque->pisos[i].livres = livres;
-        parque->pisos[i].numero = i + 1;
+        Piso *piso = &parque->pisos[i];
+        fscanf(file, "Piso %*d: %d lugares livres\n", &piso->livres);
+        piso->numero = i + 1;
     }
 
     fclose(file);
@@ -108,52 +126,99 @@ int carregar_configuracao_parque(Parque *parque) {
 
 void configurar_tarifario(Tarifario *tarifa_parque) {
     int num_tarifas;
-    printf("Quantas tarifas deseja configurar? ");
-    scanf("%d", &num_tarifas);
+    do {
+        printf("Quantas tarifas deseja configurar? (1-10): ");
+        scanf("%d", &num_tarifas);
+        if (num_tarifas < 1 || num_tarifas > 10) {
+            printf("Erro: O número de tarifas deve estar entre 1 e 10.\n");
+        }
+    } while (num_tarifas < 1 || num_tarifas > 10);
 
     tarifa_parque->lista_tarifas = malloc(num_tarifas * sizeof(Tarifa));
+    tarifa_parque->num_tarifas = num_tarifas;
 
     for (int i = 0; i < num_tarifas; i++) {
         Tarifa *tarifa = &tarifa_parque->lista_tarifas[i];
+
         printf("Configuração da tarifa %d\n", i + 1);
 
-        printf("Nome da tarifa: ");
-        scanf("%s", tarifa->nome);
+        printf("Nome da tarifa (até 10 caracteres): ");
+        scanf("%10s", tarifa->nome);
 
-        printf("Código da tarifa: ");
-        scanf("%s", tarifa->cod_tarifa);
+        printf("Código da tarifa (3 caracteres): ");
+        do {
+            scanf("%3s", tarifa->cod_tarifa);
+            if (strlen(tarifa->cod_tarifa) != 3) {
+                printf("Erro: O código deve ter exatamente 3 caracteres.\n");
+            }
+        } while (strlen(tarifa->cod_tarifa) != 3);
 
-        printf("Valor por hora (€): ");
-        scanf("%f", &tarifa->valor_hora);
+        do {
+            printf("Valor por hora (€): ");
+            scanf("%f", &tarifa->valor_hora);
+            if (tarifa->valor_hora <= 0) {
+                printf("Erro: O valor por hora deve ser maior que 0.\n");
+            }
+        } while (tarifa->valor_hora <= 0);
 
-        printf("Horário de início (hh:mm:ss): ");
-        scanf("%d:%d:%d", &tarifa->inicio.hora, &tarifa->inicio.min, &tarifa->inicio.seg);
+        do {
+            printf("Horário de início (hh:mm:ss): ");
+            scanf("%d:%d:%d", &tarifa->inicio.hora, &tarifa->inicio.min, &tarifa->inicio.seg);
+            if (tarifa->inicio.hora < 0 || tarifa->inicio.hora > 23 ||
+                tarifa->inicio.min < 0 || tarifa->inicio.min > 59 ||
+                tarifa->inicio.seg < 0 || tarifa->inicio.seg > 59) {
+                printf("Erro: Horário inválido. Tente novamente.\n");
+            }
+        } while (tarifa->inicio.hora < 0 || tarifa->inicio.hora > 23 ||
+                 tarifa->inicio.min < 0 || tarifa->inicio.min > 59 ||
+                 tarifa->inicio.seg < 0 || tarifa->inicio.seg > 59);
 
-        printf("Horário de fim (hh:mm:ss): ");
-        scanf("%d:%d:%d", &tarifa->fim.hora, &tarifa->fim.min, &tarifa->fim.seg);
+        do {
+            printf("Horário de fim (hh:mm:ss): ");
+            scanf("%d:%d:%d", &tarifa->fim.hora, &tarifa->fim.min, &tarifa->fim.seg);
+            if (tarifa->fim.hora < 0 || tarifa->fim.hora > 23 ||
+                tarifa->fim.min < 0 || tarifa->fim.min > 59 ||
+                tarifa->fim.seg < 0 || tarifa->fim.seg > 59) {
+                printf("Erro: Horário inválido. Tente novamente.\n");
+            }
+        } while (tarifa->fim.hora < 0 || tarifa->fim.hora > 23 ||
+                 tarifa->fim.min < 0 || tarifa->fim.min > 59 ||
+                 tarifa->fim.seg < 0 || tarifa->fim.seg > 59);
 
-        printf("Tipo de tarifa (H para horário, D para diária): ");
-        scanf(" %c", &tarifa->tp_tarifa);
+        do {
+            printf("Tipo de tarifa (H para horário, D para diária): ");
+            scanf(" %c", &tarifa->tp_tarifa);
+            if (tarifa->tp_tarifa != 'H' && tarifa->tp_tarifa != 'D') {
+                printf("Erro: O tipo de tarifa deve ser 'H' ou 'D'.\n");
+            }
+        } while (tarifa->tp_tarifa != 'H' && tarifa->tp_tarifa != 'D');
 
         if (tarifa->tp_tarifa == 'D') {
-            printf("Número de dias: ");
-            scanf("%d", &tarifa->dias);
+            do {
+                printf("Número de dias (>= 0): ");
+                scanf("%d", &tarifa->dias);
+                if (tarifa->dias < 0) {
+                    printf("Erro: O número de dias deve ser maior ou igual a 0.\n");
+                }
+            } while (tarifa->dias < 0);
         } else {
             tarifa->dias = 0;
         }
     }
 
-    gravar_tarifario(tarifa_parque, num_tarifas);
+    gravar_tarifario(tarifa_parque);
+
+    printf("Configuração do tarifário concluída com sucesso!\n");
 }
 
-void gravar_tarifario(const Tarifario *tarifa_parque, int num_tarifas) {
+void gravar_tarifario(const Tarifario *tarifa_parque) {
     FILE *file = fopen("tarifas.txt", "w");
     if (file == NULL) {
         printf("Erro ao gravar tarifário.\n");
         return;
     }
 
-    for (int i = 0; i < num_tarifas; i++) {
+    for (int i = 0; i < tarifa_parque->num_tarifas; i++) {
         Tarifa tarifa = tarifa_parque->lista_tarifas[i];
         fprintf(file, "%s %s %.2f %d:%d:%d %d:%d:%d %c %d\n",
                 tarifa.nome, tarifa.cod_tarifa, tarifa.valor_hora,
@@ -187,6 +252,8 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
 
         tarifa_parque->lista_tarifas[num_tarifas++] = tarifa;
     }
+
+    tarifa_parque->num_tarifas = num_tarifas;
 
     fclose(file);
     printf("Tarifário carregado com sucesso.\n");
