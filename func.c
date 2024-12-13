@@ -259,84 +259,13 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
     return num_tarifas;
 }
 
-// ------------------------ Registo de Entrada e Saída ------------------------
+void Ler_estacionamento (Estacionamento *estacionamento) {
+    printf("Digite o número de entrada do estacionamento");
+    scanf("%d", &estacionamento->numE);
 
-void registar_entrada(Parque *parque, const char *matricula, int piso, char fila, int lugar, Horario entrada) {
-    Lugar *l = &parque->pisos[piso - 1].lugares[fila - 'A'][lugar - 1];
-    if (l->estado != 'L') {
-        printf("Erro: O lugar %c%d no piso %d não está disponível.\n", fila, lugar, piso);
-        return;
-    }
+    printf("Digite a matrícula do veículo");
+    scanf("%s", &estacionamento->matricula);
 
-    l->estado = 'O'; // Ocupado
-    strcpy(l->codigo, matricula);
-    parque->lugares_ocupados++;
-    parque->lugares_livres--;
-
-    FILE *file = fopen("estacionamento.txt", "a");
-    if (file == NULL) {
-        printf("Erro ao gravar o registo de entrada.\n");
-        return;
-    }
-
-    fprintf(file, "%s %d %c %d %02d:%02d:%02d\n", matricula, piso, fila, lugar, entrada.hora, entrada.min, entrada.seg);
-    fclose(file);
-
-    printf("Entrada registada com sucesso para a matrícula %s no lugar %c%d do piso %d.\n", matricula, fila, lugar, piso);
-}
-
-void registar_saida(Parque *parque, const char *matricula, Horario saida, const Tarifario *tarifario) {
-    FILE *file = fopen("estacionamento.txt", "r");
-    if (file == NULL) {
-        printf("Erro: Não foi possível abrir o ficheiro de registo.\n");
-        return;
-    }
-
-    FILE *temp = fopen("temp.txt", "w");
-    if (temp == NULL) {
-        printf("Erro ao criar ficheiro temporário.\n");
-        fclose(file);
-        return;
-    }
-
-    char mat[10];
-    int piso, lugar;
-    char fila;
-    Horario entrada;
-    int encontrado = 0;
-
-    while (fscanf(file, "%s %d %c %d %d:%d:%d\n", mat, &piso, &fila, &lugar, &entrada.hora, &entrada.min, &entrada.seg) != EOF) {
-        if (strcmp(mat, matricula) == 0 && !encontrado) {
-            encontrado = 1;
-            Lugar *l = &parque->pisos[piso - 1].lugares[fila - 'A'][lugar - 1];
-            l->estado = 'L';
-            strcpy(l->codigo, "");
-            parque->lugares_ocupados--;
-            parque->lugares_livres++;
-
-            int duracao = (saida.hora - entrada.hora) * 60 + (saida.min - entrada.min);
-            float valor = 0;
-
-            for (int i = 0; i < tarifario->num_tarifas; i++) {
-                Tarifa t = tarifario->lista_tarifas[i];
-                if (t.tp_tarifa == 'H') {
-                    valor += duracao / 60.0 * t.valor_hora;
-                }
-            }
-
-            printf("Saída registada com sucesso para a matrícula %s. Valor a pagar: €%.2f\n", matricula, valor);
-        } else {
-            fprintf(temp, "%s %d %c %d %02d:%02d:%02d\n", mat, piso, fila, lugar, entrada.hora, entrada.min, entrada.seg);
-        }
-    }
-
-    fclose(file);
-    fclose(temp);
-
-    remove("estacionamento.txt");
-    rename("temp.txt", "estacionamento.txt");
-
-    if (!encontrado) {
-        printf("Erro: Matrícula %s não encontrada nos registos.\n", matricula);
-    }
+    printf("Digite a data de entrada do veículo (dd/mm/aaaa)");
+    scanf("%d %d %d", &estacionamento->entrada)
 }
