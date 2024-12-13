@@ -68,7 +68,7 @@ typedef struct estacionamento {
     Data data_saida;
     Horario entrada;
     Horario saida;
-    char lugar[MAX_CODIGO];
+    Lugar lugar;
     float valor_pago;
     char observacoes[50];
 } Estacionamento;

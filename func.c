@@ -260,12 +260,30 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
 }
 
 void Ler_estacionamento (Estacionamento *estacionamento) {
-    printf("Digite o número de entrada do estacionamento");
+    printf("Digite o número de entrada do estacionamento\n");
     scanf("%d", &estacionamento->numE);
 
-    printf("Digite a matrícula do veículo");
+    printf("Digite a matrícula do veículo\n");
     scanf("%s", &estacionamento->matricula);
 
-    printf("Digite a data de entrada do veículo (dd/mm/aaaa)");
-    scanf("%d %d %d", &estacionamento->entrada)
+    printf("Digite a data de entrada do veículo (dd/mm/aaaa)\n");
+    scanf("%d %d %d", &estacionamento->data_entrada.dia, &estacionamento->data_entrada.mes, &estacionamento->data_entrada.ano);
+
+    printf("Digite a hora de entrada (hh:mm:ss)\n");
+    scanf("%d %d %d", &estacionamento->entrada.hora, &estacionamento->entrada.min, &estacionamento->entrada.seg);
+
+    printf("Digite o lugar do carro (Piso_Fila_Lugar(0-50))\n");
+    scanf("%d %c %d", &estacionamento->lugar.num_piso, &estacionamento->lugar.fila, &estacionamento->lugar.lugar);
+
+    printf("Digite a data de saída (hh:mm:ss)\n");
+    scanf("%d %d %d", &estacionamento->saida.hora, &estacionamento->saida.min, &estacionamento->saida.seg);
+
+    printf("Digite a data de saída (dd/mm/aaaa) \n");
+    scanf("%d %d %d", &estacionamento->data_saida.dia, &estacionamento->data_saida.mes, &estacionamento->data_saida.ano);~
+
+    printf("Digite o valor pago \n");
+    scanf("%f", &estacionamento->valor_pago);
+
+    printf("Digite as observações\n");
+    scanf("%s", &estacionamento->observacoes);
 }
