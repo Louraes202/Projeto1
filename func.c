@@ -259,3 +259,8 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
     printf("Tarifário carregado com sucesso.\n");
     return num_tarifas;
 }
+
+void Ler_estacionamento (Estacionamento *estacionamento) {
+    printf("Digite o número de entrada do estacionamento");
+    scanf("%d", &estacionamento->numE)
+}

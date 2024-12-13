@@ -57,6 +57,18 @@ typedef struct parque {
     int lugares_livres;
 } Parque;
 
+typedef struct estacionamento {
+    int numE;
+    char matricula[MAX_MATRICULA_L];
+    Data data_entrada;
+    Horario hora_entrada;
+    Lugar lugar;
+    Data data_saida;
+    Horario hora_saida;
+    float valor_pago;
+    char observacoes[30];
+} Estacionamento;
+
 void configurar_parque(Parque *parque);
 void configurar_piso(Piso *piso, int numero, int *total_lugares);
 void configurar_tarifario(Tarifario *tarifa_parque);
