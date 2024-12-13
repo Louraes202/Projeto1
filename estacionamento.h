@@ -94,4 +94,8 @@ int carregar_tarifario(Tarifario *tarifa_parque);
 int carregar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int *total_estacionamentos);
 void gravar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int total_estacionamentos);
 
+// Funções relacionadas à gestão de entradas e saídas do parque
+void registar_entrada(Parque *parque, const char *matricula, int piso, char fila, int lugar, Horario entrada);
+void registar_saida(Parque *parque, const char *matricula, Horario saida, const Tarifario *tarifario);
+
 #endif
