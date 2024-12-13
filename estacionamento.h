@@ -9,6 +9,9 @@
 #define MAX_LUGARES 50
 #define MAX_PISOS 5
 #define MAX_TARIFAS 10
+#define MAX_MATRICULA 10
+#define MAX_CODIGO 10
+#define MAX_ESTACIONAMENTOS 100
 
 typedef struct horario {
     int hora;
@@ -34,8 +37,8 @@ typedef struct tarifario {
 typedef struct lugar {
     char fila;
     int lugar;
-    char estado;
-    char codigo[10];
+    char estado; // 'L' para livre, 'O' para ocupado, 'I' para indisponível
+    char codigo[MAX_CODIGO];
     int num_piso;
 } Lugar;
 
@@ -55,26 +58,32 @@ typedef struct parque {
     int total_lugares;
     int lugares_ocupados;
     int lugares_livres;
+    Tarifario tarifa_parque;
 } Parque;
 
 typedef struct estacionamento {
     int numE;
-    char matricula[MAX_MATRICULA_L];
-    Data data_entrada;
-    Horario hora_entrada;
-    Lugar lugar;
-    Data data_saida;
-    Horario hora_saida;
+    char matricula[MAX_MATRICULA];
+    Horario entrada;
+    Horario saida;
+    char lugar[MAX_CODIGO];
     float valor_pago;
-    char observacoes[30];
+    char observacoes[50];
 } Estacionamento;
 
+// Funções relacionadas ao parque
 void configurar_parque(Parque *parque);
 void configurar_piso(Piso *piso, int numero, int *total_lugares);
-void configurar_tarifario(Tarifario *tarifa_parque);
 void gravar_configuracao_parque(const Parque *parque);
 int carregar_configuracao_parque(Parque *parque);
+
+// Funções relacionadas ao tarifário
+void configurar_tarifario(Tarifario *tarifa_parque);
 void gravar_tarifario(const Tarifario *tarifa_parque);
 int carregar_tarifario(Tarifario *tarifa_parque);
+
+// Funções relacionadas aos registos de estacionamento
+int carregar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int *total_estacionamentos);
+void gravar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int total_estacionamentos);
 
 #endif
