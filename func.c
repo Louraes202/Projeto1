@@ -10,7 +10,7 @@ void configurar_parque(Parque *parque) {
     scanf("%10s", parque->nome);
 
     printf("Digite a morada do parque (até 30 caracteres): ");
-    scanf(" %[^\n]", parque->morada);
+    scanf("%30s", parque->morada);
 
     do {
         printf("Quantos pisos terá o parque? (1-%d): ", MAX_PISOS);
@@ -41,7 +41,6 @@ void configurar_piso(Piso *piso, int numero, int *total_lugares) {
 
     int filas, lugares;
 
-    // Validação do número de filas
     do {
         printf("Número de filas no piso %d (1-%d): ", piso->numero, MAX_FILAS);
         scanf("%d", &filas);
@@ -50,7 +49,6 @@ void configurar_piso(Piso *piso, int numero, int *total_lugares) {
         }
     } while (filas < 1 || filas > MAX_FILAS);
 
-    // Validação do número de lugares por fila
     do {
         printf("Lugares por fila no piso %d (1-%d): ", piso->numero, MAX_LUGARES);
         scanf("%d", &lugares);
@@ -59,13 +57,12 @@ void configurar_piso(Piso *piso, int numero, int *total_lugares) {
         }
     } while (lugares < 1 || lugares > MAX_LUGARES);
 
-    // Configuração dos lugares no piso
     for (int f = 0; f < filas; f++) {
         for (int l = 0; l < lugares; l++) {
             Lugar *lugar = &piso->lugares[f][l];
             lugar->fila = 'A' + f;
             lugar->lugar = l + 1;
-            lugar->estado = 'L'; // Livre
+            lugar->estado = 'L';
             lugar->num_piso = piso->numero;
             sprintf(lugar->codigo, "%d%c%02d", piso->numero, 'A' + f, l + 1);
         }
@@ -101,14 +98,14 @@ int carregar_configuracao_parque(Parque *parque) {
     FILE *file = fopen("config_parque.txt", "r");
     if (file == NULL) {
         printf("Erro: Não foi possível abrir o ficheiro de configuração do parque.\n");
-        return 0; // Falha
+        return 0;
     }
 
     fgets(parque->nome, sizeof(parque->nome), file);
-    parque->nome[strcspn(parque->nome, "\n")] = 0; // Remover o '\n'
+    parque->nome[strcspn(parque->nome, "\n")] = 0;
 
     fgets(parque->morada, sizeof(parque->morada), file);
-    parque->morada[strcspn(parque->morada, "\n")] = 0; // Remover o '\n'
+    parque->morada[strcspn(parque->morada, "\n")] = 0;
 
     fscanf(file, "%d\n", &parque->num_pisos);
     for (int i = 0; i < parque->num_pisos; i++) {
@@ -119,7 +116,7 @@ int carregar_configuracao_parque(Parque *parque) {
 
     fclose(file);
     printf("Configuração do parque carregada com sucesso.\n");
-    return 1; // Sucesso
+    return 1;
 }
 
 // ------------------------ Configuração do Tarifário ------------------------
@@ -127,12 +124,12 @@ int carregar_configuracao_parque(Parque *parque) {
 void configurar_tarifario(Tarifario *tarifa_parque) {
     int num_tarifas;
     do {
-        printf("Quantas tarifas deseja configurar? (1-10): ");
+        printf("Quantas tarifas deseja configurar? (1-%d): ", MAX_TARIFAS);
         scanf("%d", &num_tarifas);
-        if (num_tarifas < 1 || num_tarifas > 10) {
-            printf("Erro: O número de tarifas deve estar entre 1 e 10.\n");
+        if (num_tarifas < 1 || num_tarifas > MAX_TARIFAS) {
+            printf("Erro: O número de tarifas deve estar entre 1 e %d.\n", MAX_TARIFAS);
         }
-    } while (num_tarifas < 1 || num_tarifas > 10);
+    } while (num_tarifas < 1 || num_tarifas > MAX_TARIFAS);
 
     tarifa_parque->lista_tarifas = malloc(num_tarifas * sizeof(Tarifa));
     tarifa_parque->num_tarifas = num_tarifas;
@@ -235,16 +232,18 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
     FILE *file = fopen("tarifas.txt", "r");
     if (file == NULL) {
         printf("Erro: Não foi possível abrir o ficheiro de tarifário.\n");
-        return 0; // Falha
+        return 0;
     }
 
     int num_tarifas = 0;
-    while (!feof(file)) {
+    tarifa_parque->lista_tarifas = malloc(MAX_TARIFAS * sizeof(Tarifa));
+
+    while (!feof(file) && num_tarifas < MAX_TARIFAS) {
         Tarifa tarifa;
         char inicio[9], fim[9];
 
-        fscanf(file, "%s %s %f %s %s %c %d\n", 
-               tarifa.nome, tarifa.cod_tarifa, &tarifa.valor_hora, 
+        fscanf(file, "%s %s %f %s %s %c %d\n",
+               tarifa.nome, tarifa.cod_tarifa, &tarifa.valor_hora,
                inicio, fim, &tarifa.tp_tarifa, &tarifa.dias);
 
         sscanf(inicio, "%d:%d:%d", &tarifa.inicio.hora, &tarifa.inicio.min, &tarifa.inicio.seg);
