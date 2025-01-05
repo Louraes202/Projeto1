@@ -259,15 +259,106 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
     return num_tarifas;
 }
 
-void Ler_estacionamento (Estacionamento *estacionamento) {
-    printf("Digite o número de entrada do estacionamento");
-    scanf("%d", &estacionamento->numE);
+//função para ler o ficheiro estacionamento.txt
+void ler_estacionamentos(const char *nomeFicheiro) {
+    FILE *ficheiro = fopen(nomeFicheiro, "r");
+    if (ficheiro == NULL) {
+        perror("Erro ao abrir o ficheiro");
+        return;
+    }
 
-    printf("Digite a matrícula do veículo");
-    scanf("%s", &estacionamento->matricula);
+    Estacionamento est;
+    while (fscanf(ficheiro, "%d %s %d/%d/%d %d/%d/%d %d:%d:%d %d:%d:%d %s %f %s",
+                  &est.numE,
+                  est.matricula,
+                  &est.data_entrada.dia, &est.data_entrada.mes, &est.data_entrada.ano,
+                  &est.data_saida.dia, &est.data_saida.mes, &est.data_saida.ano,
+                  &est.entrada.hora, &est.entrada.min, &est.entrada.min,
+                  &est.saida.hora, &est.saida.min, &est.saida.seg,
+                  est.lugar,
+                  &est.valor_pago,
+                  est.observacoes) == 17) {
+        // Imprime os dados lidos
+        printf("Número: %d\n", est.numE);
+        printf("Matrícula: %s\n", est.matricula);
+        printf("Data Entrada: %02d/%02d/%04d\n", est.data_entrada.dia, est.data_entrada.mes, est.data_entrada.ano);
+        printf("Data Saída: %02d/%02d/%04d\n", est.data_saida.dia, est.data_saida.mes, est.data_saida.ano);
+        printf("Hora Entrada: %02d:%02d:%02d\n", est.entrada.hora, est.entrada.min, est.entrada.seg);
+        printf("Hora Saída: %02d:%02d:%02d\n", est.saida.hora, est.saida.min, est.saida.seg);
+        printf("Lugar: %s\n", est.lugar);
+        printf("Valor Pago: %.2f\n", est.valor_pago);
+        printf("Observações: %s\n", est.observacoes);
+        printf("--------------------------\n");
+    }
 
-    printf("Digite a data de entrada do veículo (dd/mm/aaaa)");
-    scanf("%d %d %d", &estacionamento->entrada);
+    fclose(ficheiro);
+}
+
+//Função para ler o ficheiro tarifario.txt
+Tarifario ler_Tarifario(const char *filename) {
+    Tarifario tarifario;
+    tarifario.lista_tarifas = NULL;
+    tarifario.num_tarifas = 0;
+
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Erro ao abrir o arquivo");
+        exit(EXIT_FAILURE);
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] != '\n') { // Ignorar linhas vazias
+            tarifario.num_tarifas++;
+        }
+    }
+
+    tarifario.lista_tarifas = malloc(tarifario.num_tarifas * sizeof(Tarifa));
+    if (tarifario.lista_tarifas == NULL) {
+        perror("Erro ao alocar memória para tarifas");
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    rewind(file);
+    int i = 0;
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] != '\n') {
+            Tarifa *tarifa = &tarifario.lista_tarifas[i];
+
+            sscanf(line, "%c\t%3s\t%2d:%2d\t%2d:%2d\t%f",
+                   &tarifa->tp_tarifa,
+                   tarifa->cod_tarifa,
+                   &tarifa->inicio.hora, &tarifa->inicio.min,
+                   &tarifa->fim.hora, &tarifa->fim.min,
+                   &tarifa->valor_hora);
+
+            tarifa->inicio.seg = 0;
+            tarifa->fim.seg = 0;
+            tarifa->dias = 0;
+            snprintf(tarifa->nome, sizeof(tarifa->nome), "Tarifa%s", tarifa->cod_tarifa);
+
+            i++;
+        }
+    }
+
+    fclose(file);
+    return tarifario;
+}
+
+//FUNÇAO SO PRA TESTE DA FUNÇAO DE LER TARIFARIO
+void imprimir_tarifario(const Tarifario *tarifario) {
+    for (int i = 0; i < tarifario->num_tarifas; i++) {
+        Tarifa tarifa = tarifario->lista_tarifas[i];
+        printf("Tipo: %c\n", tarifa.tp_tarifa);
+        printf("Código: %s\n", tarifa.cod_tarifa);
+        printf("Hora início: %02d:%02d:%02d\n", tarifa.inicio.hora, tarifa.inicio.min, tarifa.inicio.seg);
+        printf("Hora fim: %02d:%02d:%02d\n", tarifa.fim.hora, tarifa.fim.min, tarifa.fim.seg);
+        printf("Valor hora: %.2f\n", tarifa.valor_hora);
+        printf("Nome: %s\n", tarifa.nome);
+        printf("Dias: %d\n", tarifa.dias);
+        printf("---------------------\n");
+    }
 }
 
 void registar_entrada(Parque *parque, const char *matricula, int piso, char fila, int lugar, Horario entrada) {
