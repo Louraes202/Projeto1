@@ -13,6 +13,13 @@
 #define MAX_CODIGO 10
 #define MAX_ESTACIONAMENTOS 100
 
+// Definição da estrutura Data
+typedef struct data {
+    int dia;
+    int mes;
+    int ano;
+} Data;
+
 typedef struct horario {
     int hora;
     int min;
@@ -73,12 +80,6 @@ typedef struct estacionamento {
     char observacoes[50];
 } Estacionamento;
 
-typedef struct data {
-    int dia;
-    int mes;
-    int ano;
-} Data;
-
 // Funções relacionadas ao parque
 void configurar_parque(Parque *parque);
 void configurar_piso(Piso *piso, int numero, int *total_lugares);
@@ -97,5 +98,6 @@ void gravar_estacionamentos(const char *filename, Estacionamento *estacionamento
 // Funções relacionadas à gestão de entradas e saídas do parque
 void registar_entrada(Parque *parque, const char *matricula, int piso, char fila, int lugar, Horario entrada);
 void registar_saida(Parque *parque, const char *matricula, Horario saida, const Tarifario *tarifario);
+
 
 #endif

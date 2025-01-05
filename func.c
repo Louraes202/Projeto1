@@ -259,31 +259,189 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
     return num_tarifas;
 }
 
-void Ler_estacionamento (Estacionamento *estacionamento) {
-    printf("Digite o número de entrada do estacionamento\n");
+void Ler_estacionamento(Estacionamento *estacionamento) {
+    printf("Digite o número de entrada do estacionamento:\n");
     scanf("%d", &estacionamento->numE);
 
-    printf("Digite a matrícula do veículo\n");
-    scanf("%s", &estacionamento->matricula);
+    printf("Digite a matrícula do veículo (máx. %d caracteres):\n", MAX_MATRICULA - 1);
+    scanf("%9s", estacionamento->matricula);
 
-    printf("Digite a data de entrada do veículo (dd/mm/aaaa)\n");
-    scanf("%d %d %d", &estacionamento->data_entrada.dia, &estacionamento->data_entrada.mes, &estacionamento->data_entrada.ano);
+    printf("Digite a data de entrada do veículo (dd mm aaaa):\n");
+    scanf("%d %d %d", 
+          &estacionamento->data_entrada.dia, 
+          &estacionamento->data_entrada.mes, 
+          &estacionamento->data_entrada.ano);
 
-    printf("Digite a hora de entrada (hh:mm:ss)\n");
-    scanf("%d %d %d", &estacionamento->entrada.hora, &estacionamento->entrada.min, &estacionamento->entrada.seg);
+    printf("Digite a hora de entrada (hh mm ss):\n");
+    scanf("%d %d %d", 
+          &estacionamento->entrada.hora, 
+          &estacionamento->entrada.min, 
+          &estacionamento->entrada.seg);
 
-    printf("Digite o lugar do carro (Piso_Fila_Lugar(0-50))\n");
-    scanf("%d %c %d", &estacionamento->lugar.num_piso, &estacionamento->lugar.fila, &estacionamento->lugar.lugar);
+    printf("Digite o lugar do carro (Piso Fila Lugar):\n");
+    scanf("%d %c %d", 
+          &estacionamento->lugar.num_piso, 
+          &estacionamento->lugar.fila, 
+          &estacionamento->lugar.lugar);
 
-    printf("Digite a data de saída (hh:mm:ss)\n");
-    scanf("%d %d %d", &estacionamento->saida.hora, &estacionamento->saida.min, &estacionamento->saida.seg);
+    printf("Digite a hora de saída (hh mm ss):\n");
+    scanf("%d %d %d", 
+          &estacionamento->saida.hora, 
+          &estacionamento->saida.min, 
+          &estacionamento->saida.seg);
 
-    printf("Digite a data de saída (dd/mm/aaaa) \n");
-    scanf("%d %d %d", &estacionamento->data_saida.dia, &estacionamento->data_saida.mes, &estacionamento->data_saida.ano);~
+    printf("Digite a data de saída (dd mm aaaa):\n");
+    scanf("%d %d %d", 
+          &estacionamento->data_saida.dia, 
+          &estacionamento->data_saida.mes, 
+          &estacionamento->data_saida.ano);
 
-    printf("Digite o valor pago \n");
+    printf("Digite o valor pago:\n");
     scanf("%f", &estacionamento->valor_pago);
 
-    printf("Digite as observações\n");
-    scanf("%s", &estacionamento->observacoes);
+    printf("Digite as observações (máx. %d caracteres):\n", 50 - 1);
+    scanf("%49s", estacionamento->observacoes);
+}
+
+int carregar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int *total_estacionamentos, Parque *parque) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Erro: Não foi possível abrir o ficheiro %s.\n", filename);
+        return 0;
+    }
+
+    int count = 0;
+    while (fscanf(file, "%d %9s %d/%d/%d %d:%d:%d %d %c %d %d/%d/%d %d:%d:%d %f ",
+                  &estacionamentos[count].numE,
+                  estacionamentos[count].matricula,
+                  &estacionamentos[count].data_entrada.dia, &estacionamentos[count].data_entrada.mes, &estacionamentos[count].data_entrada.ano,
+                  &estacionamentos[count].entrada.hora, &estacionamentos[count].entrada.min, &estacionamentos[count].entrada.seg,
+                  &estacionamentos[count].lugar.num_piso,
+                  &estacionamentos[count].lugar.fila,
+                  &estacionamentos[count].lugar.lugar,
+                  &estacionamentos[count].data_saida.dia, &estacionamentos[count].data_saida.mes, &estacionamentos[count].data_saida.ano,
+                  &estacionamentos[count].saida.hora, &estacionamentos[count].saida.min, &estacionamentos[count].saida.seg,
+                  &estacionamentos[count].valor_pago) == 18) {
+        fgets(estacionamentos[count].observacoes, sizeof(estacionamentos[count].observacoes), file);
+        estacionamentos[count].observacoes[strcspn(estacionamentos[count].observacoes, "\n")] = '\0';
+
+        // Atualizar estado do parque para veículos ainda estacionados
+        if (estacionamentos[count].data_saida.dia == 0 && estacionamentos[count].saida.hora == 0) {
+            int piso = estacionamentos[count].lugar.num_piso - 1;
+            int fila_index = estacionamentos[count].lugar.fila - 'A';
+            int lugar_index = estacionamentos[count].lugar.lugar - 1;
+
+            if (piso >= 0 && piso < parque->num_pisos && fila_index >= 0 && fila_index < MAX_FILAS && lugar_index >= 0 && lugar_index < MAX_LUGARES) {
+                Lugar *lugar = &parque->pisos[piso].lugares[fila_index][lugar_index];
+                lugar->estado = 'O';
+                parque->pisos[piso].ocupados++;
+                parque->pisos[piso].livres--;
+                parque->lugares_ocupados++;
+                parque->lugares_livres--;
+            }
+        }
+        count++;
+
+        if (count >= MAX_ESTACIONAMENTOS) {
+            printf("Aviso: Limite máximo de estacionamentos atingido.\n");
+            break;
+        }
+    }
+
+    fclose(file);
+    *total_estacionamentos = count;
+    printf("%d registos de estacionamento carregados com sucesso.\n", count);
+    return 1;
+}
+
+float calcular_valor_pago(const Estacionamento *estacionamento, const Tarifario *tarifario) {
+    for (int i = 0; i < tarifario->num_tarifas; i++) {
+        const Tarifa *tarifa = &tarifario->lista_tarifas[i];
+        // Verifica se a entrada e a saída estão dentro do intervalo de tempo da tarifa
+        if (estacionamento->entrada.hora >= tarifa->inicio.hora && estacionamento->entrada.hora <= tarifa->fim.hora) {
+            // Calculo simplificado (horas completas entre entrada e saída)
+            int duracao_horas = estacionamento->saida.hora - estacionamento->entrada.hora;
+            if (duracao_horas < 0) duracao_horas += 24; // Corrige caso passe da meia-noite
+            return duracao_horas * tarifa->valor_hora;
+        }
+    }
+    return 0.0f; // Caso nenhuma tarifa seja aplicável
+}
+
+void gravar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int total_estacionamentos) {
+    FILE *file = fopen(filename, "w");
+    if (!file) {
+        printf("Erro: Não foi possível abrir o ficheiro %s para escrita.\n", filename);
+        return;
+    }
+
+    for (int i = 0; i < total_estacionamentos; i++) {
+        fprintf(file, "%d %s %02d/%02d/%04d %02d:%02d:%02d %d %c %d %02d/%02d/%04d %02d:%02d:%02d %.2f %s\n",
+                estacionamentos[i].numE,
+                estacionamentos[i].matricula,
+                estacionamentos[i].data_entrada.dia, estacionamentos[i].data_entrada.mes, estacionamentos[i].data_entrada.ano,
+                estacionamentos[i].entrada.hora, estacionamentos[i].entrada.min, estacionamentos[i].entrada.seg,
+                estacionamentos[i].lugar.num_piso,
+                estacionamentos[i].lugar.fila,
+                estacionamentos[i].lugar.lugar,
+                estacionamentos[i].data_saida.dia, estacionamentos[i].data_saida.mes, estacionamentos[i].data_saida.ano,
+                estacionamentos[i].saida.hora, estacionamentos[i].saida.min, estacionamentos[i].saida.seg,
+                estacionamentos[i].valor_pago,
+                estacionamentos[i].observacoes);
+    }
+
+    fclose(file);
+    printf("Registos de estacionamento gravados com sucesso em %s.\n", filename);
+}
+
+void registar_entrada(Parque *parque, const char *matricula, int piso, char fila, int lugar, Horario entrada) {
+    if (piso < 1 || piso > parque->num_pisos) {
+        printf("Erro: Piso %d inválido.\n", piso);
+        return;
+    }
+
+    Piso *p = &parque->pisos[piso - 1];
+    int fila_index = fila - 'A';
+
+    if (fila_index < 0 || fila_index >= MAX_FILAS || lugar < 1 || lugar > MAX_LUGARES) {
+        printf("Erro: Fila %c ou lugar %d inválidos.\n", fila, lugar);
+        return;
+    }
+
+    Lugar *l = &p->lugares[fila_index][lugar - 1];
+
+    if (l->estado != 'L') {
+        printf("Erro: O lugar %c%d no piso %d não está disponível.\n", fila, lugar, piso);
+        return;
+    }
+
+    l->estado = 'O';
+    p->ocupados++;
+    p->livres--;
+    parque->lugares_ocupados++;
+    parque->lugares_livres--;
+
+    printf("Entrada registada com sucesso para a matrícula %s no lugar %c%d do piso %d.\n", matricula, fila, lugar, piso);
+}
+
+void registar_saida(Parque *parque, const char *matricula, Horario saida, const Tarifario *tarifario) {
+    for (int i = 0; i < parque->num_pisos; i++) {
+        Piso *p = &parque->pisos[i];
+        for (int f = 0; f < MAX_FILAS; f++) {
+            for (int l = 0; l < MAX_LUGARES; l++) {
+                Lugar *lugar = &p->lugares[f][l];
+                if (lugar->estado == 'O' && strcmp(lugar->codigo, matricula) == 0) {
+                    lugar->estado = 'L';
+                    p->ocupados--;
+                    p->livres++;
+                    parque->lugares_ocupados--;
+                    parque->lugares_livres++;
+
+                    printf("Saída registada com sucesso para a matrícula %s.\n", matricula);
+                    return;
+                }
+            }
+        }
+    }
+    printf("Erro: Matrícula %s não encontrada nos registos.\n", matricula);
 }
