@@ -259,48 +259,89 @@ int carregar_tarifario(Tarifario *tarifa_parque) {
     return num_tarifas;
 }
 
-void Ler_estacionamento(Estacionamento *estacionamento) {
-    printf("Digite o número de entrada do estacionamento:\n");
-    scanf("%d", &estacionamento->numE);
+void ler_estacionamentos(const char *nome_ficheiro) {
+    FILE *ficheiro = fopen("estacionamento.txt", "r");
+    if (ficheiro == NULL) {
+        perror("Erro ao abrir o ficheiro");
+        return;
+    }
 
-    printf("Digite a matrícula do veículo (máx. %d caracteres):\n", MAX_MATRICULA - 1);
-    scanf("%9s", estacionamento->matricula);
+    Estacionamento est;
+    while (fscanf(ficheiro, "%d %s %d/%d/%d %d/%d/%d %d:%d:%d %d:%d:%d %s %f %s",
+                  &est.numE,
+                  est.matricula,
+                  &est.data_entrada.dia, &est.data_entrada.mes, &est.data_entrada.ano,
+                  &est.data_saida.dia, &est.data_saida.mes, &est.data_saida.ano,
+                  &est.entrada.hora, &est.entrada.min, &est.entrada.seg,
+                  &est.saida.hora, &est.saida.min, &est.saida.seg,
+                  est.lugar,
+                  &est.valor_pago,
+                  est.observacoes) == 17) {
+        // Imprime os dados lidos
+        printf("Número: %d\n", est.numE);
+        printf("Matrícula: %s\n", est.matricula);
+        printf("Data Entrada: %02d/%02d/%04d\n", est.data_entrada.dia, est.data_entrada.mes, est.data_entrada.ano);
+        printf("Data Saída: %02d/%02d/%04d\n", est.data_saida.dia, est.data_saida.mes, est.data_saida.ano);
+        printf("Hora Entrada: %02d:%02d:%02d\n", est.entrada.hora, est.entrada.min, est.entrada.seg);
+        printf("Hora Saída: %02d:%02d:%02d\n", est.saida.hora, est.saida.min, est.saida.seg);
+        printf("Lugar: %s\n", est.lugar);
+        printf("Valor Pago: %.2f\n", est.valor_pago);
+        printf("Observações: %s\n", est.observacoes);
+        printf("--------------------------\n");
+    }
 
-    printf("Digite a data de entrada do veículo (dd mm aaaa):\n");
-    scanf("%d %d %d", 
-          &estacionamento->data_entrada.dia, 
-          &estacionamento->data_entrada.mes, 
-          &estacionamento->data_entrada.ano);
+    fclose(ficheiro);
+}
 
-    printf("Digite a hora de entrada (hh mm ss):\n");
-    scanf("%d %d %d", 
-          &estacionamento->entrada.hora, 
-          &estacionamento->entrada.min, 
-          &estacionamento->entrada.seg);
+Tarifario ler_Tarifario(const char *filename) {
+    Tarifario tarifario;
+    tarifario.lista_tarifas = NULL;
+    tarifario.num_tarifas = 0;
 
-    printf("Digite o lugar do carro (Piso Fila Lugar):\n");
-    scanf("%d %c %d", 
-          &estacionamento->lugar.num_piso, 
-          &estacionamento->lugar.fila, 
-          &estacionamento->lugar.lugar);
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Erro ao abrir o arquivo");
+        exit(EXIT_FAILURE);
+    }
 
-    printf("Digite a hora de saída (hh mm ss):\n");
-    scanf("%d %d %d", 
-          &estacionamento->saida.hora, 
-          &estacionamento->saida.min, 
-          &estacionamento->saida.seg);
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] != '\n') { // Ignorar linhas vazias
+            tarifario.num_tarifas++;
+        }
+    }
 
-    printf("Digite a data de saída (dd mm aaaa):\n");
-    scanf("%d %d %d", 
-          &estacionamento->data_saida.dia, 
-          &estacionamento->data_saida.mes, 
-          &estacionamento->data_saida.ano);
+    tarifario.lista_tarifas = malloc(tarifario.num_tarifas * sizeof(Tarifa));
+    if (tarifario.lista_tarifas == NULL) {
+        perror("Erro ao alocar memória para tarifas");
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
 
-    printf("Digite o valor pago:\n");
-    scanf("%f", &estacionamento->valor_pago);
+    rewind(file);
+    int i = 0;
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] != '\n') {
+            Tarifa *tarifa = &tarifario.lista_tarifas[i];
 
-    printf("Digite as observações (máx. %d caracteres):\n", 50 - 1);
-    scanf("%49s", estacionamento->observacoes);
+            sscanf(line, "%c\t%3s\t%2d:%2d\t%2d:%2d\t%f",
+                   &tarifa->tp_tarifa,
+                   tarifa->cod_tarifa,
+                   &tarifa->inicio.hora, &tarifa->inicio.min,
+                   &tarifa->fim.hora, &tarifa->fim.min,
+                   &tarifa->valor_hora);
+
+            tarifa->inicio.seg = 0;
+            tarifa->fim.seg = 0;
+            tarifa->dias = 0;
+            snprintf(tarifa->nome, sizeof(tarifa->nome), "Tarifa%s", tarifa->cod_tarifa);
+
+            i++;
+        }
+    }
+
+    fclose(file);
+    return tarifario;
 }
 
 int carregar_estacionamentos(const char *filename, Estacionamento *estacionamentos, int *total_estacionamentos, Parque *parque) {
