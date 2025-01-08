@@ -47,47 +47,46 @@ typedef struct tarifario {
 
 // Representa um lugar de estacionamento individual.
 typedef struct lugar {
-    char fila;             // Identificador da fila (A a Z)
-    int lugar;             // Número do lugar na fila (1 a MAX_LUGARES)
-    char estado;           // Estado do lugar: 'L' (livre), 'O' (ocupado), 'I' (indisponível)
-    char codigo[MAX_CODIGO];  // Código único do lugar (ex: "1A01")
-    int num_piso;          // Número do piso onde o lugar está localizado (1 a MAX_PISOS)
+    char fila;               // Identificador da fila
+    int lugar;               // Número do lugar
+    char estado;             // 'L' para livre, 'O' para ocupado
+    char codigo[MAX_CODIGO]; // Código único do estacionamento (se ocupado)
+    int num_piso;            // Piso onde o lugar está localizado
 } Lugar;
 
 // Representa um piso do parque de estacionamento.
 typedef struct piso {
-    int numero;                          // Número do piso (1 a MAX_PISOS)
-    Lugar lugares[MAX_FILAS][MAX_LUGARES]; // Array bidimensional de lugares organizados por fila
-    int livres;                          // Número total de lugares livres no piso
-    int ocupados;                        // Número total de lugares ocupados no piso
-    int indisponiveis;                   // Número total de lugares indisponíveis no piso
+    int numero; // Número do piso
+    Lugar lugares[MAX_FILAS][MAX_LUGARES]; // Matriz de lugares (filas x lugares por fila)
+    int livres; // Número de lugares livres no piso
+    int ocupados; // Número de lugares ocupados no piso
+    int indisponiveis; // Número de lugares indisponíveis no piso
 } Piso;
 
 // Representa o parque de estacionamento como um todo.
 typedef struct parque {
-    Piso pisos[MAX_PISOS];               // Array de pisos do parque
-    int num_pisos;                       // Número total de pisos no parque
-    char nome[10];                       // Nome do parque
-    char morada[30];                     // Morada do parque
-    int total_lugares;                   // Número total de lugares no parque
-    int lugares_ocupados;                // Número total de lugares ocupados
-    int lugares_livres;                  // Número total de lugares livres
-    int filas;                           // Número de filas por piso
-    int lugares_por_fila;                // Número de lugares por fila
-    Tarifario tarifa_parque;             // Tarifário associado ao parque
+    char nome[30];                 // Nome do parque
+    char morada[50];               // Morada do parque
+    int num_pisos;                 // Total de pisos
+    int filas;                     // Número de filas por piso
+    int lugares_por_fila;          // Número de lugares por fila
+    Piso pisos[MAX_PISOS];         // Array de pisos
+    int total_lugares;             // Total de lugares no parque
+    int lugares_ocupados;          // Total de lugares ocupados
+    int lugares_livres;            // Total de lugares livres
 } Parque;
 
 // Representa um registo de estacionamento de um veículo.
 typedef struct estacionamento {
-    int numE;                     // Número sequencial do registo de estacionamento
-    char matricula[MAX_MATRICULA]; // Matrícula do veículo (ex: "AA-00-BB")
-    Data data_entrada;            // Data de entrada no parque
-    Data data_saida;              // Data de saída do parque (se aplicável)
-    Horario entrada;              // Horário de entrada no parque
-    Horario saida;                // Horário de saída do parque (se aplicável)
-    Lugar lugar;                  // Lugar de estacionamento atribuído ao veículo
-    float valor_pago;             // Valor pago pelo estacionamento
-    char observacoes[50];         // Observações ou notas sobre o registo
+    int numE;                      // Número do registo
+    char matricula[MAX_MATRICULA]; // Matrícula do veículo
+    Data data_entrada;             // Data de entrada
+    Data data_saida;               // Data de saída (se aplicável)
+    Horario entrada;               // Hora de entrada
+    Horario saida;                 // Hora de saída (se aplicável)
+    Lugar lugar;                   // Lugar ocupado
+    float valor_pago;              // Valor pago (se aplicável)
+    char observacoes[50];          // Observações adicionais
 } Estacionamento;
 
 // Declaração de funções
@@ -95,9 +94,25 @@ void configurar_parque(Parque *parque);
 void gravar_configuracao_parque(const Parque *parque);
 int carregar_configuracao_parque(Parque *parque);
 void visualizar_dados_parque(const Parque *parque);
-void limpar_memoria(Parque *parque);
 int carregar_tarifas(Tarifario *tarifario);
 int carregar_registos(Estacionamento estacionamentos[], int *total_estacionamentos, Tarifario *tarifario);
 float calcular_valor_pago(const Estacionamento *estacionamento, const Tarifario *tarifario);
+
+// Funções para persistência e carregamento
+int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos, int *ultimo_id);
+void guardar_estado_binario(const Parque *parque, Estacionamento estacionamentos[], int total_estacionamentos);
+
+
+// Função para carregar registos de ficheiro .txt
+int carregar_registos_txt(const char *nome_ficheiro, Estacionamento estacionamentos[], int *total_estacionamentos, Parque *parque);
+
+// Função para limpar memória e ficheiros
+void limpar_memoria(Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos);
+
+// Função para exibir lugares por pisos no menu
+void exibir_lugares_por_piso(const Parque *parque);
+
+//
+void exibir_estatisticas_ocupacao(const Parque *parque);
 
 #endif
