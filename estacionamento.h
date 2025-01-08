@@ -90,10 +90,14 @@ typedef struct estacionamento {
     char observacoes[50];         // Observações ou notas sobre o registo
 } Estacionamento;
 
-// Declarações de funções
+// Declaração de funções
 void configurar_parque(Parque *parque);
 void gravar_configuracao_parque(const Parque *parque);
 int carregar_configuracao_parque(Parque *parque);
 void visualizar_dados_parque(const Parque *parque);
+void limpar_memoria(Parque *parque);
+int carregar_tarifas(Tarifario *tarifario);
+int carregar_registos(Estacionamento estacionamentos[], int *total_estacionamentos, Tarifario *tarifario);
+float calcular_valor_pago(const Estacionamento *estacionamento, const Tarifario *tarifario);
 
 #endif

@@ -16,6 +16,7 @@ void exibir_menu_configuracao() {
     printf("\n> -- Configuração --\n");
     printf("1. Configurar Parque\n");
     printf("2. Ver Dados do Parque\n");
+    printf("3. Limpar Memória\n");
     printf("0. Voltar atrás\n");
     printf("Escolha uma opção: ");
 }
@@ -34,7 +35,7 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    Parque parque;
+    Parque parque = {0};
     int opcao_principal, opcao_configuracao, opcao_registos;
 
     do {
@@ -51,44 +52,39 @@ int main() {
                     scanf("%d", &opcao_configuracao); // Lê a opção do sub-menu de configuração
                     getchar(); // Limpa o buffer do teclado
 
-                    switch (opcao_configuracao) {
-                        case 1: {
-                            // Sub-opções para configuração do parque
-                            printf("\n1. Configurar Novo Parque\n");
-                            printf("2. Carregar Configuração de Ficheiro\n");
-                            printf("Escolha uma opção: ");
-                            int opcao_subconfig; // Variável para armazenar a escolha do sub-menu de configuração
-                            scanf("%d", &opcao_subconfig);
-                            getchar(); // Limpa o buffer do teclado
+            switch (opcao_configuracao) {
+                case 1: {
+                    printf("\n1. Configurar Novo Parque\n");
+                    printf("2. Carregar Configuração de Ficheiro\n");
+                    printf("Escolha uma opção: ");
+                    int opcao_subconfig;
+                    scanf("%d", &opcao_subconfig);
+                    getchar();
 
-                            if (opcao_subconfig == 1) {
-                                // Configura um novo parque
-                                configurar_parque(&parque);
-                            } else if (opcao_subconfig == 2) {
-                                // Carrega a configuração do parque a partir de um ficheiro
-                                if (!carregar_configuracao_parque(&parque)) {
-                                    printf("Erro ao carregar configuração. Certifique-se de que o ficheiro existe e não está vazio.\n");
-                                }
-                            } else {
-                                // Trata opções inválidas no sub-menu de configuração
-                                printf("Opção inválida. Tente novamente.\n");
-                            }
-                            break;
+                    if (opcao_subconfig == 1) {
+                        configurar_parque(&parque);
+                    } else if (opcao_subconfig == 2) {
+                        if (!carregar_configuracao_parque(&parque)) {
+                            printf("Erro ao carregar configuração. Certifique-se de que o ficheiro existe e não está vazio.\n");
                         }
-                        case 2:
-                            // Exibe os dados atuais do parque
-                            visualizar_dados_parque(&parque);
-                            break;
-
-                        case 0:
-                            // Retorna ao menu principal
-                            printf("Voltando ao menu principal...\n");
-                            break;
-
-                        default:
-                            // Trata opções inválidas no menu de configuração
-                            printf("Opção inválida. Tente novamente.\n");
+                    } else {
+                        printf("Opção inválida. Tente novamente.\n");
                     }
+                    break;
+                }
+                case 2:
+                    visualizar_dados_parque(&parque);
+                    break;
+                case 3:
+                    limpar_memoria(&parque);
+                    break;
+                case 0:
+                    printf("Voltando ao menu principal...\n");
+                    break;
+
+                default:
+                    printf("Opção inválida. Tente novamente.\n");
+            }
                 } while (opcao_configuracao != 0); // Mantém no sub-menu de configuração até o utilizador escolher sair
                 break;
 
@@ -110,7 +106,8 @@ int main() {
                 break;
 
             case 0:
-                // Encerra o programa
+                // Garantir persistência no final da inicialização
+                salvar_dados(estacionamentos, total_estacionamentos, &tarifario);
                 printf("Encerrando o programa.\n");
                 break;
 
