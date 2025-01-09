@@ -1,5 +1,3 @@
-# 
-
 # Verificação de requisitos
 
 ### **Verificação dos Requisitos da Alínea 1b**
@@ -32,33 +30,6 @@
     - Aplicar as tarifas de acordo com os horários especificados no ficheiro `Tarifas.txt`.
     - Calcular o valor com base nos períodos de 15 minutos e ajustar ao valor máximo diário.
     - Implementar suporte para estadias de múltiplos dias.
-
-### **2. Validar a leitura e gravação de dados.**
-
-- Garantir que o programa:
-    - Lê corretamente o ficheiro `Estacionamentos.txt`, considerando registros incompletos (sem saída) como veículos ainda no parque.
-    - Atualiza o ficheiro ao registrar saídas ou entradas.
-
-### **3. Apresentar mapa de ocupação de pisos.**
-
-- Mostrar uma visualização gráfica simples no terminal:
-    - **'-'** para lugares livres.
-    - **'X'** para lugares ocupados.
-    - Motivo (ex.: **'I'**, **'O'**) para lugares indisponíveis.
-
-### **4. Listagem de veículos que saíram num dia.**
-
-- Permitir que o utilizador:
-    - Insira uma data específica (AAAA-MM-DD).
-    - Veja todos os registos de veículos que saíram nesse dia, com os valores pagos.
-    - Ordene os resultados por valor pago, decrescentemente.
-
-### **5. Persistência e sincronização de dados.**
-
-- Ao sair do programa, todos os dados em memória devem ser salvos:
-    - Configuração do parque.
-    - Tarifário.
-    - Registos de estacionamento.
 
 ---
 
@@ -139,3 +110,4 @@
             - Compatibilidade com a configuração do parque (pisos, filas, lugares).
             - Registos com dados incompatíveis são ignorados e reportados.
         - Registos de lugares já ocupados ou indisponíveis também são descartados.
+
