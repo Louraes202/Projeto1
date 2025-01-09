@@ -213,6 +213,9 @@ int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], in
         return 0;
     }
 
+    // Recalcula as estatísticas do parque após carregar os dados
+    recalcular_estatisticas_parque(parque);
+
     // Atualiza o último ID com base nos registos carregados
     for (int i = 0; i < *total_estacionamentos; i++) {
         if (estacionamentos[i].numE > *ultimo_id) {
@@ -224,6 +227,34 @@ int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], in
     printf("Sistema: Estado do parque carregado com sucesso.\n");
     return 1;
 }
+
+void recalcular_estatisticas_parque(Parque *parque) {
+    for (int i = 0; i < parque->num_pisos; i++) {
+        parque->pisos[i].livres = 0;
+        parque->pisos[i].ocupados = 0;
+        parque->pisos[i].indisponiveis = 0;
+        for (int j = 0; j < parque->filas; j++) {
+            for (int k = 0; k < parque->lugares_por_fila; k++) {
+                Lugar *lugar = &parque->pisos[i].lugares[j][k];
+                if (lugar->estado == 'L') {
+                    parque->pisos[i].livres++;
+                } else if (lugar->estado == 'O') {
+                    parque->pisos[i].ocupados++;
+                } else if (lugar->estado == 'I') {
+                    parque->pisos[i].indisponiveis++;
+                }
+            }
+        }
+    }
+
+    parque->lugares_ocupados = 0;
+    parque->lugares_livres = 0;
+    for (int i = 0; i < parque->num_pisos; i++) {
+        parque->lugares_livres += parque->pisos[i].livres;
+        parque->lugares_ocupados += parque->pisos[i].ocupados;
+    }
+}
+
 
 
 // Função para carregar registos de forma automática (através de ficheiros)

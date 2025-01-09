@@ -115,4 +115,7 @@ void exibir_lugares_por_piso(const Parque *parque);
 //
 void exibir_estatisticas_ocupacao(const Parque *parque);
 
+//
+void recalcular_estatisticas_parque(Parque *parque);
+
 #endif
