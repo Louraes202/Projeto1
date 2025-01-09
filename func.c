@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 #include "estacionamento.h"
 
 // ------------------------ Funções do menu  ------------------------
@@ -28,16 +29,19 @@ void gravar_configuracao_parque(const Parque *parque) {
         return;
     }
 
-    // Escrever nome, morada e os parâmetros numéricos
-    fprintf(file, "%s\n%s\n%d\n%d\n%d\n%d\n", 
-            parque->nome, 
-            parque->morada, 
-            parque->num_pisos, 
-            parque->filas, 
-            parque->lugares_por_fila, 
-            parque->total_lugares);
+    // Escrever nome, morada e número de pisos
+    fprintf(file, "%s\n%s\n%d\n", parque->nome, parque->morada, parque->num_pisos);
 
-    if (ferror(file)) { // Verifica se ocorreu um erro durante a escrita
+    // Escrever a configuração de cada piso e suas filas
+    for (int i = 0; i < parque->num_pisos; i++) {
+        const Piso *piso = &parque->pisos[i];
+        fprintf(file, "%d\n", i + 1); // Número do piso
+        for (int j = 0; j < piso->num_filas; j++) {
+            fprintf(file, "%d\n%d\n", j + 1, piso->lugares_por_fila[j]); // Número da fila e número de lugares
+        }
+    }
+
+    if (ferror(file)) {
         printf("Erro ao gravar dados no ficheiro.\n");
     } else {
         printf("Configuração do parque gravada com sucesso.\n");
@@ -46,33 +50,22 @@ void gravar_configuracao_parque(const Parque *parque) {
     fclose(file);
 }
 
+
 // Função para carregar a configuração do ficheiro
 int carregar_configuracao_parque(Parque *parque) {
     FILE *file = fopen("config_parque.txt", "r");
     if (file == NULL) {
         printf("Sistema: O ficheiro de configuração não existe.\n");
-        printf("Sistema: Utilize a opção 'Limpar Memória' para reinicializar o ficheiro.\n");
         return 0;
     }
 
-    // Verificar se o ficheiro está vazio
-    fseek(file, 0, SEEK_END);
-    long tamanho = ftell(file);
-    if (tamanho == 0) {
-        printf("Sistema: O ficheiro de configuração está vazio.\n");
-        fclose(file);
-        return 0;
-    }
-    rewind(file);
+    // Limpar a estrutura do parque antes de carregar
+    memset(parque, 0, sizeof(Parque));
 
-    // Ler os dados do ficheiro
-    char linha[256];
+    // Ler nome, morada e número de pisos
     if (fgets(parque->nome, sizeof(parque->nome), file) == NULL ||
         fgets(parque->morada, sizeof(parque->morada), file) == NULL ||
-        fgets(linha, sizeof(linha), file) == NULL || sscanf(linha, "%d", &parque->num_pisos) != 1 ||
-        fgets(linha, sizeof(linha), file) == NULL || sscanf(linha, "%d", &parque->filas) != 1 ||
-        fgets(linha, sizeof(linha), file) == NULL || sscanf(linha, "%d", &parque->lugares_por_fila) != 1 ||
-        fgets(linha, sizeof(linha), file) == NULL || sscanf(linha, "%d", &parque->total_lugares) != 1) {
+        fscanf(file, "%d\n", &parque->num_pisos) != 1) {
         printf("Sistema: O ficheiro de configuração não está no formato esperado.\n");
         fclose(file);
         return 0;
@@ -82,36 +75,75 @@ int carregar_configuracao_parque(Parque *parque) {
     parque->nome[strcspn(parque->nome, "\n")] = '\0';
     parque->morada[strcspn(parque->morada, "\n")] = '\0';
 
-    // Validar os valores numéricos
-    if (parque->num_pisos <= 0 || parque->num_pisos > MAX_PISOS ||
-        parque->filas <= 0 || parque->filas > MAX_FILAS ||
-        parque->lugares_por_fila <= 0 || parque->lugares_por_fila > MAX_LUGARES) {
-        printf("Sistema: O ficheiro de configuração contém valores inválidos.\n");
+    // Validar número de pisos
+    if (parque->num_pisos <= 0 || parque->num_pisos > MAX_PISOS) {
+        printf("Sistema: Número de pisos inválido.\n");
         fclose(file);
         return 0;
     }
 
-    // Validar consistência do total de lugares
-    if (parque->total_lugares != parque->num_pisos * parque->filas * parque->lugares_por_fila) {
-        printf("Sistema: O ficheiro de configuração contém inconsistências no total de lugares.\n");
-        fclose(file);
-        return 0;
-    }
-
-    // Inicializar campos derivados
-    parque->lugares_ocupados = 0;
-    parque->lugares_livres = parque->total_lugares;
+    // Ler a configuração de cada piso
     for (int i = 0; i < parque->num_pisos; i++) {
-        parque->pisos[i].livres = parque->filas * parque->lugares_por_fila;
-        parque->pisos[i].ocupados = 0;
-        parque->pisos[i].indisponiveis = 0;
-        for (int j = 0; j < parque->filas; j++) {
-            for (int k = 0; k < parque->lugares_por_fila; k++) {
-                parque->pisos[i].lugares[j][k].estado = 'L';
-                memset(parque->pisos[i].lugares[j][k].codigo, 0, sizeof(parque->pisos[i].lugares[j][k].codigo));
-            }
+        Piso *piso = &parque->pisos[i];
+        piso->livres = 0;
+        piso->ocupados = 0;
+        piso->indisponiveis = 0;
+
+        // Ler o número do piso
+        int numero_piso;
+        if (fscanf(file, "%d\n", &numero_piso) != 1) {
+            printf("Sistema: Erro ao carregar o número do Piso %d.\n", i + 1);
+            fclose(file);
+            return 0;
         }
+
+        // Validar se o número do piso faz sentido (opcional)
+        if (numero_piso < 1 || numero_piso > MAX_PISOS) {
+            printf("Sistema: Número do Piso %d inválido.\n", numero_piso);
+            fclose(file);
+            return 0;
+        }
+
+        // Ler as filas do piso
+        int fila_idx = 0;
+        while (1) {
+            int numero_fila, lugares;
+            int result = fscanf(file, "%d\n%d\n", &numero_fila, &lugares);
+
+            // Se não conseguir ler mais, verificar se é o próximo piso ou fim do ficheiro
+            if (result != 2) {
+                if (feof(file)) {
+                    break; // Fim do ficheiro
+                }
+                // Se não é o fim do ficheiro, pode ser o próximo piso
+                int next_piso;
+                if (fscanf(file, "%d", &next_piso) == 1) {
+                    fseek(file, -sizeof(int), SEEK_CUR); // Recuar para processar no próximo loop
+                    break;
+                }
+                printf("Sistema: Erro ao carregar as filas do Piso %d.\n", numero_piso);
+                fclose(file);
+                return 0;
+            }
+
+            // Validar os dados lidos
+            if (numero_fila < 1 || numero_fila > MAX_FILAS || lugares < 1 || lugares > MAX_LUGARES) {
+                printf("Sistema: Dados inválidos na Fila %d do Piso %d.\n", numero_fila, numero_piso);
+                fclose(file);
+                return 0;
+            }
+
+            // Preencher a configuração da fila no piso
+            piso->lugares_por_fila[numero_fila - 1] = lugares;
+            piso->livres += lugares;
+            fila_idx++;
+        }
+
+        piso->num_filas = fila_idx; // Atualiza o número de filas do piso
     }
+
+    // Atualizar estatísticas globais
+    recalcular_estatisticas_parque(parque);
 
     printf("Configuração do parque carregada com sucesso.\n");
     fclose(file);
@@ -162,13 +194,33 @@ void guardar_estado_binario(const Parque *parque, Estacionamento estacionamentos
         return;
     }
 
-    // Grava os dados do parque
-    fwrite(parque, sizeof(Parque), 1, file);
+    // Gravar o nome e a morada do parque
+    fwrite(parque->nome, sizeof(parque->nome), 1, file);
+    fwrite(parque->morada, sizeof(parque->morada), 1, file);
 
-    // Grava o número total de registos
+    // Gravar o número de pisos
+    fwrite(&parque->num_pisos, sizeof(int), 1, file);
+
+    // Gravar cada piso
+    for (int i = 0; i < parque->num_pisos; i++) {
+        const Piso *piso = &parque->pisos[i];
+
+        // Gravar o número de filas do piso
+        fwrite(&piso->num_filas, sizeof(int), 1, file);
+
+        // Gravar os lugares por fila
+        fwrite(piso->lugares_por_fila, sizeof(int), piso->num_filas, file);
+
+        // Gravar os detalhes dos lugares
+        for (int j = 0; j < piso->num_filas; j++) {
+            fwrite(piso->lugares[j], sizeof(Lugar), piso->lugares_por_fila[j], file);
+        }
+    }
+
+    // Gravar o número total de registos
     fwrite(&total_estacionamentos, sizeof(int), 1, file);
 
-    // Grava os registos de estacionamento
+    // Gravar os registos de estacionamento
     fwrite(estacionamentos, sizeof(Estacionamento), total_estacionamentos, file);
 
     fclose(file);
@@ -185,20 +237,69 @@ int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], in
         return 0;
     }
 
-    // Lê os dados do parque
-    if (fread(parque, sizeof(Parque), 1, file) != 1 || 
-        parque->num_pisos == 0 || 
-        parque->filas == 0 || 
-        parque->lugares_por_fila == 0) {
-        printf("Erro ao carregar dados do parque ou parque não configurado. Inicializando com dados padrão.\n");
+    // Limpar a estrutura antes de carregar
+    memset(parque, 0, sizeof(Parque));
+
+    // Ler o nome e a morada do parque
+    fread(parque->nome, sizeof(parque->nome), 1, file);
+    fread(parque->morada, sizeof(parque->morada), 1, file);
+
+    // Ler o número de pisos
+    if (fread(&parque->num_pisos, sizeof(int), 1, file) != 1 || parque->num_pisos <= 0 || parque->num_pisos > MAX_PISOS) {
+        printf("Erro ao carregar o número de pisos. Inicializando com dados padrão.\n");
         fclose(file);
-        memset(parque, 0, sizeof(Parque)); // Reinicializa a estrutura
-        *total_estacionamentos = 0;
-        *ultimo_id = 0;
+        memset(parque, 0, sizeof(Parque));
         return 0;
     }
 
-    // Lê o número total de registos
+    // Ler cada piso
+    for (int i = 0; i < parque->num_pisos; i++) {
+        Piso *piso = &parque->pisos[i];
+
+        // Ler o número de filas do piso
+        if (fread(&piso->num_filas, sizeof(int), 1, file) != 1 || piso->num_filas <= 0 || piso->num_filas > MAX_FILAS) {
+            printf("Erro ao carregar o número de filas no Piso %d. Inicializando com dados padrão.\n", i + 1);
+            fclose(file);
+            memset(parque, 0, sizeof(Parque));
+            return 0;
+        }
+
+        // Ler os lugares por fila
+        if (fread(piso->lugares_por_fila, sizeof(int), piso->num_filas, file) != (size_t)piso->num_filas) {
+            printf("Erro ao carregar os lugares por fila no Piso %d. Inicializando com dados padrão.\n", i + 1);
+            fclose(file);
+            memset(parque, 0, sizeof(Parque));
+            return 0;
+        }
+
+        piso->livres = 0;
+        piso->ocupados = 0;
+        piso->indisponiveis = 0;
+
+        // Ler os detalhes de cada lugar
+        for (int j = 0; j < piso->num_filas; j++) {
+            if (fread(piso->lugares[j], sizeof(Lugar), piso->lugares_por_fila[j], file) != (size_t)piso->lugares_por_fila[j]) {
+                printf("Erro ao carregar os dados do lugar no Piso %d, Fila %d.\n", i + 1, j + 1);
+                fclose(file);
+                memset(parque, 0, sizeof(Parque));
+                return 0;
+            }
+
+            // Atualizar estatísticas do piso
+            for (int k = 0; k < piso->lugares_por_fila[j]; k++) {
+                Lugar *lugar_atual = &piso->lugares[j][k];
+                if (lugar_atual->estado == 'L') {
+                    piso->livres++;
+                } else if (lugar_atual->estado == 'O') {
+                    piso->ocupados++;
+                } else if (lugar_atual->estado == 'I') {
+                    piso->indisponiveis++;
+                }
+            }
+        }
+    }
+
+    // Ler o número total de registos
     if (fread(total_estacionamentos, sizeof(int), 1, file) != 1) {
         printf("Erro ao carregar o total de registos. Inicializando com 0 registos.\n");
         fclose(file);
@@ -206,7 +307,7 @@ int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], in
         return 0;
     }
 
-    // Lê os registos de estacionamento
+    // Ler os registos de estacionamento
     if (fread(estacionamentos, sizeof(Estacionamento), *total_estacionamentos, file) != (size_t)*total_estacionamentos) {
         printf("Erro ao carregar registos. Inicializando com registos vazios.\n");
         fclose(file);
@@ -214,15 +315,15 @@ int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], in
         return 0;
     }
 
-    // Recalcula as estatísticas do parque após carregar os dados
-    recalcular_estatisticas_parque(parque);
-
-    // Atualiza o último ID com base nos registos carregados
+    // Atualizar o último ID com base nos registos carregados
     for (int i = 0; i < *total_estacionamentos; i++) {
         if (estacionamentos[i].numE > *ultimo_id) {
             *ultimo_id = estacionamentos[i].numE;
         }
     }
+
+    // Recalcular as estatísticas do parque
+    recalcular_estatisticas_parque(parque);
 
     fclose(file);
     printf("Sistema: Estado do parque carregado com sucesso.\n");
@@ -230,35 +331,36 @@ int carregar_estado_binario(Parque *parque, Estacionamento estacionamentos[], in
 }
 
 void recalcular_estatisticas_parque(Parque *parque) {
+    // Inicializar as estatísticas globais
+    parque->lugares_ocupados = 0; // **ALTERAÇÃO**
+    parque->lugares_livres = 0;   // **ALTERAÇÃO**
+
     for (int i = 0; i < parque->num_pisos; i++) {
-        parque->pisos[i].livres = 0;
-        parque->pisos[i].ocupados = 0;
-        parque->pisos[i].indisponiveis = 0;
-        for (int j = 0; j < parque->filas; j++) {
-            for (int k = 0; k < parque->lugares_por_fila; k++) {
-                Lugar *lugar = &parque->pisos[i].lugares[j][k];
+        Piso *piso = &parque->pisos[i];
+        piso->livres = 0; // **ALTERAÇÃO**
+        piso->ocupados = 0;
+        piso->indisponiveis = 0;
+
+        for (int j = 0; j < piso->num_filas; j++) {
+            for (int k = 0; k < piso->lugares_por_fila[j]; k++) {
+                Lugar *lugar = &piso->lugares[j][k];
                 if (lugar->estado == 'L') {
-                    parque->pisos[i].livres++;
+                    piso->livres++; // **ALTERAÇÃO**
                 } else if (lugar->estado == 'O') {
-                    parque->pisos[i].ocupados++;
+                    piso->ocupados++;
                 } else if (lugar->estado == 'I') {
-                    parque->pisos[i].indisponiveis++;
+                    piso->indisponiveis++;
                 }
             }
         }
-    }
 
-    parque->lugares_ocupados = 0;
-    parque->lugares_livres = 0;
-    for (int i = 0; i < parque->num_pisos; i++) {
-        parque->lugares_livres += parque->pisos[i].livres;
-        parque->lugares_ocupados += parque->pisos[i].ocupados;
+        parque->lugares_livres += piso->livres; // **ALTERAÇÃO**
+        parque->lugares_ocupados += piso->ocupados;
     }
 }
 
 
 
-// Função para carregar registos de forma automática (através de ficheiros)
 int carregar_registos_txt(const char *nome_ficheiro, Estacionamento estacionamentos[], int *total_estacionamentos, Parque *parque) {
     FILE *file = fopen(nome_ficheiro, "r");
     if (file == NULL) {
@@ -292,16 +394,23 @@ int carregar_registos_txt(const char *nome_ficheiro, Estacionamento estacionamen
         int fila_idx = fila - 'A';
 
         // Validação de compatibilidade do registo com o parque
-        if (piso < 1 || piso > parque->num_pisos ||
-            fila_idx < 0 || fila_idx >= parque->filas ||
-            lugar < 1 || lugar > parque->lugares_por_fila) {
+        if (piso < 1 || piso > parque->num_pisos) {
+            printf("Aviso: Registo incompatível (Piso: %d, Fila: %c, Lugar: %d). Ignorado.\n", piso, fila, lugar);
+            registos_descartados++;
+            continue;
+        }
+
+        Piso *piso_atual = &parque->pisos[piso - 1];
+
+        if (fila_idx < 0 || fila_idx >= piso_atual->num_filas ||
+            lugar < 1 || lugar > piso_atual->lugares_por_fila[fila_idx]) {
             printf("Aviso: Registo incompatível (Piso: %d, Fila: %c, Lugar: %d). Ignorado.\n", piso, fila, lugar);
             registos_descartados++;
             continue;
         }
 
         // Validação do estado do lugar
-        Lugar *lugar_atual = &parque->pisos[piso - 1].lugares[fila_idx][lugar - 1];
+        Lugar *lugar_atual = &piso_atual->lugares[fila_idx][lugar - 1];
         if (lugar_atual->estado != 'L') { // Verifica se o lugar está livre
             printf("Aviso: Lugar já ocupado ou indisponível (Piso: %d, Fila: %c, Lugar: %d). Ignorado.\n", piso, fila, lugar);
             registos_descartados++;
@@ -313,8 +422,8 @@ int carregar_registos_txt(const char *nome_ficheiro, Estacionamento estacionamen
         strcpy(lugar_atual->codigo, estacionamentos[*total_estacionamentos].matricula);
 
         // Atualizar o estado do parque
-        parque->pisos[piso - 1].ocupados++;
-        parque->pisos[piso - 1].livres--;
+        piso_atual->ocupados++;
+        piso_atual->livres--;
 
         // Incrementar o contador de registos válidos
         (*total_estacionamentos)++;
@@ -363,70 +472,132 @@ void limpar_memoria(Parque *parque, Estacionamento estacionamentos[], int *total
     printf("Memória do programa e ficheiros associados foram limpos.\n");
 }
 
+// ------------------------ Configuração do Parque ------------------------
 
-void configurar_parque(Parque *parque) {
-    // Solicita o nome do parque
-    printf("Digite o nome do parque (até 30 caracteres): ");
-    scanf("%30s", parque->nome);
+// Função para configurar os pisos do parque
+void configurar_pisos(Parque *parque) {
+    for (int piso_idx = 0; piso_idx < parque->num_pisos; piso_idx++) {
+        int max_lugares_piso = MAX_FILAS * MAX_LUGARES;
 
-    // Solicita a morada do parque
-    printf("Digite a morada do parque (até 30 caracteres): ");
-    scanf(" %[^\n]%*c", parque->morada);
+        printf("\nConfiguração para o Piso %d:\n", piso_idx + 1);
 
-    // Solicita o número de andares
-    do {
-        printf("Digite o número de andares (1-5): ");
-        scanf("%d", &parque->num_pisos);
-        if (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS) {
-            printf("Sistema: O número de andares deve estar entre 1 e %d.\n", MAX_PISOS);
-        }
-    } while (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS);
-
-    // Solicita o número de filas por piso
-    do {
-        printf("Digite o número de filas por piso (1-26): ");
-        scanf("%d", &parque->filas);
-        if (parque->filas < 1 || parque->filas > MAX_FILAS) {
-            printf("Sistema: O número de filas deve estar entre 1 e %d.\n", MAX_FILAS);
-        }
-    } while (parque->filas < 1 || parque->filas > MAX_FILAS);
-
-    // Solicita o número de lugares por fila
-    do {
-        printf("Digite o número de lugares por fila (1-50): ");
-        scanf("%d", &parque->lugares_por_fila);
-        if (parque->lugares_por_fila < 1 || parque->lugares_por_fila > MAX_LUGARES) {
-            printf("Sistema: O número de lugares deve estar entre 1 e %d.\n", MAX_LUGARES);
-        }
-    } while (parque->lugares_por_fila < 1 || parque->lugares_por_fila > MAX_LUGARES);
-
-    // Calcula o total de lugares e inicializa os campos relacionados
-    parque->total_lugares = parque->num_pisos * parque->filas * parque->lugares_por_fila;
-    parque->lugares_ocupados = 0;
-    parque->lugares_livres = parque->total_lugares;
-
-    // Inicializa os dados por piso
-    for (int i = 0; i < parque->num_pisos; i++) {
-        parque->pisos[i].livres = parque->filas * parque->lugares_por_fila;
-        parque->pisos[i].ocupados = 0;
-        parque->pisos[i].indisponiveis = 0;
-    }
-
-    for (int i = 0; i < parque->num_pisos; i++) {
-        for (int j = 0; j < parque->filas; j++) {
-            for (int k = 0; k < parque->lugares_por_fila; k++) {
-                // Inicializa cada lugar como livre
-                parque->pisos[i].lugares[j][k].estado = 'L'; // Livre
-                memset(parque->pisos[i].lugares[j][k].codigo, 0, sizeof(parque->pisos[i].lugares[j][k].codigo));
+        do {
+            printf("Digite o número de filas neste piso (1-26, -1 para voltar): ");
+            if (scanf("%d", &parque->pisos[piso_idx].num_filas) != 1 || parque->pisos[piso_idx].num_filas == -1) {
+                printf("Cancelando configuração do Piso %d.\n", piso_idx + 1);
+                piso_idx--;
+                break;
             }
+
+            if (parque->pisos[piso_idx].num_filas < 1 || parque->pisos[piso_idx].num_filas > MAX_FILAS) {
+                printf("Erro: O número de filas deve estar entre 1 e %d.\n", MAX_FILAS);
+            } else {
+                break;
+            }
+        } while (1);
+
+        printf("Selecione o tipo de distribuição:\n");
+        printf("1. Distribuição Quadrada (número uniforme de lugares por fila)\n");
+        printf("2. Distribuição Manual (definir o número de lugares por fila)\n");
+        printf("Escolha uma opção (-1 para voltar): ");
+        int tipo_distribuicao;
+        if (scanf("%d", &tipo_distribuicao) != 1 || tipo_distribuicao == -1) {
+            printf("Cancelando configuração do Piso %d.\n", piso_idx + 1);
+            piso_idx--;
+            continue;
+        }
+
+        if (tipo_distribuicao == 1) { // Distribuição Quadrada
+            int lugares_por_fila;
+            do {
+                printf("Digite o número de lugares por fila (1-50, -1 para voltar): ");
+                if (scanf("%d", &lugares_por_fila) != 1 || lugares_por_fila == -1) {
+                    printf("Cancelando configuração do Piso %d.\n", piso_idx + 1);
+                    piso_idx--;
+                    break;
+                }
+
+                if (lugares_por_fila < 1 || lugares_por_fila > MAX_LUGARES ||
+                    lugares_por_fila * parque->pisos[piso_idx].num_filas > max_lugares_piso) {
+                    printf("Erro: Configuração inválida. Total de lugares ultrapassa o máximo permitido.\n");
+                } else {
+                    for (int fila = 0; fila < parque->pisos[piso_idx].num_filas; fila++) {
+                        parque->pisos[piso_idx].lugares_por_fila[fila] = lugares_por_fila;
+                    }
+                    break;
+                }
+            } while (1);
+        } else if (tipo_distribuicao == 2) { // Distribuição Manual
+            for (int fila = 0; fila < parque->pisos[piso_idx].num_filas; fila++) {
+                do {
+                    printf("Digite o número de lugares para a Fila %c (-1 para voltar): ", 'A' + fila);
+                    int lugares_na_fila;
+                    if (scanf("%d", &lugares_na_fila) != 1 || lugares_na_fila == -1) {
+                        printf("Cancelando configuração da Fila %c.\n", 'A' + fila);
+                        fila--;
+                        break;
+                    }
+
+                    if (lugares_na_fila < 0 || lugares_na_fila > MAX_LUGARES) {
+                        printf("Erro: Configuração inválida. Total de lugares ultrapassa o máximo permitido.\n");
+                    } else {
+                        parque->pisos[piso_idx].lugares_por_fila[fila] = lugares_na_fila;
+                        parque->pisos[piso_idx].livres += lugares_na_fila; // **ALTERAÇÃO**
+                        break;
+                    }
+                    recalcular_estatisticas_parque(parque); // **ALTERAÇÃO**
+                } while (1);
+                if (fila == -1) { // Recomeça o piso
+                    break;
+                }
+            }
+        } else {
+            printf("Erro: Opção inválida. Voltando à configuração do Piso %d.\n", piso_idx + 1);
+            piso_idx--;
         }
     }
-    printf("Todos os lugares foram inicializados como livres.\n");
-
-    // Grava a configuração no ficheiro
-    gravar_configuracao_parque(parque);
-    printf("Configuração do parque concluída e salva com sucesso.\n");
 }
+
+
+// Função para configurar o parque a ser gerido pelo programa
+void configurar_parque(Parque *parque) {
+    printf("Digite o nome do parque (até 30 caracteres, -1 para voltar): ");
+    if (scanf("%30s", parque->nome) == 1 && strcmp(parque->nome, "-1") == 0) {
+        printf("Operação cancelada.\n");
+        return; // Voltar ao menu anterior
+    }
+
+    printf("Digite a morada do parque (até 30 caracteres, -1 para voltar): ");
+    char morada_temp[30];
+    scanf(" %[^\n]%*c", morada_temp);
+    if (strcmp(morada_temp, "-1") == 0) {
+        printf("Operação cancelada.\n");
+        return;
+    }
+    strcpy(parque->morada, morada_temp);
+
+    do {
+        printf("Digite o número de andares (1-5, -1 para voltar): ");
+        if (scanf("%d", &parque->num_pisos) != 1 || parque->num_pisos == -1) {
+            printf("Operação cancelada.\n");
+            return; // Voltar ao menu anterior
+        }
+
+        if (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS) {
+            printf("Erro: O número de pisos deve estar entre 1 e %d.\n", MAX_PISOS);
+        } else {
+            break;
+        }
+    } while (1);
+
+    configurar_pisos(parque);
+
+    gravar_configuracao_parque(parque);
+
+    printf("Configuração do parque concluída com sucesso.\n");
+}
+
+
 
 // Função para alterar os dados do parque
 void alterar_parque(Parque *parque) {
@@ -435,8 +606,7 @@ void alterar_parque(Parque *parque) {
     printf("\n--- Alterar Configuração do Parque ---\n");
     printf("1. Alterar nome do parque\n");
     printf("2. Alterar número de pisos\n");
-    printf("3. Alterar número de filas por piso\n");
-    printf("4. Alterar número de lugares por fila\n");
+    printf("3. Alterar filas ou lugares em um piso específico\n");
     printf("0. Sair\n");
     printf("Escolha uma opção: ");
     scanf("%d", &opcao);
@@ -451,28 +621,81 @@ void alterar_parque(Parque *parque) {
                 printf("Digite o novo número de andares (1-5): ");
                 scanf("%d", &parque->num_pisos);
                 if (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS) {
-                    printf("Sistema: O número de andares deve estar entre 1 e %d.\n", MAX_PISOS);
+                    printf("Erro: O número de andares deve estar entre 1 e %d.\n", MAX_PISOS);
                 }
             } while (parque->num_pisos < 1 || parque->num_pisos > MAX_PISOS);
             break;
-        case 3:
+        case 3: {
+            int piso;
             do {
-                printf("Digite o novo número de filas por piso (1-26): ");
-                scanf("%d", &parque->filas);
-                if (parque->filas < 1 || parque->filas > MAX_FILAS) {
-                    printf("Sistema: O número de filas deve estar entre 1 e %d.\n", MAX_FILAS);
+                printf("Digite o número do piso que deseja alterar (1-%d): ", parque->num_pisos);
+                scanf("%d", &piso);
+                if (piso < 1 || piso > parque->num_pisos) {
+                    printf("Erro: Piso inválido. Escolha entre 1 e %d.\n", parque->num_pisos);
                 }
-            } while (parque->filas < 1 || parque->filas > MAX_FILAS);
-            break;
-        case 4:
-            do {
-                printf("Digite o novo número de lugares por fila (1-50): ");
-                scanf("%d", &parque->lugares_por_fila);
-                if (parque->lugares_por_fila < 1 || parque->lugares_por_fila > MAX_LUGARES) {
-                    printf("Sistema: O número de lugares deve estar entre 1 e %d.\n", MAX_LUGARES);
+            } while (piso < 1 || piso > parque->num_pisos);
+
+            Piso *piso_atual = &parque->pisos[piso - 1];
+
+            printf("Alterar configuração do Piso %d:\n", piso);
+            printf("1. Alterar número de filas\n");
+            printf("2. Alterar lugares em uma fila específica\n");
+            printf("0. Voltar\n");
+            printf("Escolha uma opção: ");
+            int sub_opcao;
+            scanf("%d", &sub_opcao);
+
+            switch (sub_opcao) {
+                case 1: {
+                    int num_filas;
+                    do {
+                        printf("Digite o novo número de filas (1-26): ");
+                        scanf("%d", &num_filas);
+                        if (num_filas < 1 || num_filas > MAX_FILAS) {
+                            printf("Erro: O número de filas deve estar entre 1 e %d.\n", MAX_FILAS);
+                        }
+                    } while (num_filas < 1 || num_filas > MAX_FILAS);
+
+                    piso_atual->num_filas = num_filas;
+                    // Redefinir os lugares por fila
+                    for (int i = 0; i < num_filas; i++) {
+                        piso_atual->lugares_por_fila[i] = 0;
+                    }
+                    printf("Número de filas alterado com sucesso.\n");
+                    break;
                 }
-            } while (parque->lugares_por_fila < 1 || parque->lugares_por_fila > MAX_LUGARES);
+                case 2: {
+                    int fila;
+                    do {
+                        printf("Digite o número da fila que deseja alterar (1-%d): ", piso_atual->num_filas);
+                        scanf("%d", &fila);
+                        if (fila < 1 || fila > piso_atual->num_filas) {
+                            printf("Erro: Fila inválida. Escolha entre 1 e %d.\n", piso_atual->num_filas);
+                        }
+                    } while (fila < 1 || fila > piso_atual->num_filas);
+
+                    int num_lugares;
+                    do {
+                        printf("Digite o novo número de lugares para a Fila %c (1-50): ", 'A' + fila - 1);
+                        scanf("%d", &num_lugares);
+                        if (num_lugares < 1 || num_lugares > MAX_LUGARES) {
+                            printf("Erro: O número de lugares deve estar entre 1 e %d.\n", MAX_LUGARES);
+                        }
+                    } while (num_lugares < 1 || num_lugares > MAX_LUGARES);
+
+                    piso_atual->lugares_por_fila[fila - 1] = num_lugares;
+                    printf("Número de lugares na Fila %c alterado com sucesso.\n", 'A' + fila - 1);
+                    break;
+                }
+                case 0:
+                    printf("Voltando ao menu anterior.\n");
+                    return;
+                default:
+                    printf("Opção inválida.\n");
+                    return;
+            }
             break;
+        }
         case 0:
             printf("Nenhuma alteração realizada.\n");
             return;
@@ -481,16 +704,15 @@ void alterar_parque(Parque *parque) {
             return;
     }
 
-    // Atualizar os valores derivados
-    parque->total_lugares = parque->num_pisos * parque->filas * parque->lugares_por_fila;
-    parque->lugares_livres = parque->total_lugares - parque->lugares_ocupados;
+    // Recalcular os valores derivados
+    recalcular_estatisticas_parque(parque);
 
     // Gravar as alterações no ficheiro
     gravar_configuracao_parque(parque);
     printf("Alterações realizadas com sucesso e salvas no ficheiro.\n");
 }
 
-// Função para visualizar os dados atuais do parque, validando se está configurado
+
 void visualizar_dados_parque(const Parque *parque) {
     // Verificar se os dados básicos do parque estão configurados
     if (strlen(parque->nome) == 0 || parque->num_pisos <= 0) {
@@ -499,17 +721,104 @@ void visualizar_dados_parque(const Parque *parque) {
         return;
     }
 
-    printf("\n-- Dados Atuais do Parque --\n");
+    printf("\n-- Dados Gerais do Parque --\n");
     printf("Nome: %s\n", parque->nome);
     printf("Morada: %s\n", parque->morada);
     printf("Número de pisos: %d\n", parque->num_pisos);
-    printf("Número de filas por piso: %d\n", parque->filas);
-    printf("Número de lugares por fila: %d\n", parque->lugares_por_fila);
-    printf("Total de lugares: %d\n", parque->total_lugares);
+    printf("Total de lugares no parque: %d\n", parque->total_lugares);
     printf("Lugares ocupados: %d\n", parque->lugares_ocupados);
     printf("Lugares livres: %d\n", parque->lugares_livres);
     printf("------------------------------\n");
+
+    // Início da navegação interativa
+    int piso_atual = 0;
+    char opcao[10];
+    do {
+        const Piso *piso = &parque->pisos[piso_atual];
+        printf("\n--- Piso %d ---\n", piso_atual + 1);
+        printf("  Número de filas: %d\n", piso->num_filas);
+        printf("  Lugares livres: %d\n", piso->livres);
+        printf("  Lugares ocupados: %d\n", piso->ocupados);
+        printf("  Lugares indisponíveis: %d\n", piso->indisponiveis);
+        printf("------------------------------\n");
+
+        // Menu para explorar filas ou navegar
+        printf("Opções disponíveis:\n");
+        printf("  F - Ver detalhes das filas\n");
+        printf("  N - Próximo piso\n");
+        printf("  P - Piso anterior\n");
+        printf("  S - Sair\n");
+        printf("  Ou insira o número de um piso (1-%d) para ir diretamente.\n", parque->num_pisos);
+        printf("Escolha uma opção: ");
+        scanf(" %s", opcao);
+
+        if (opcao[0] == 'N' || opcao[0] == 'n') {
+            if (piso_atual < parque->num_pisos - 1) {
+                piso_atual++;
+            } else {
+                printf("\nVocê já está no último piso.\n");
+            }
+        } else if (opcao[0] == 'P' || opcao[0] == 'p') {
+            if (piso_atual > 0) {
+                piso_atual--;
+            } else {
+                printf("\nVocê já está no primeiro piso.\n");
+            }
+        } else if (opcao[0] == 'F' || opcao[0] == 'f') {
+            int fila_atual = 0;
+            do {
+                printf("\n--- Detalhes da Fila %c no Piso %d ---\n", 'A' + fila_atual, piso_atual + 1);
+                printf("  Número de lugares: %d\n", piso->lugares_por_fila[fila_atual]);
+                printf("\nOpções disponíveis:\n");
+                printf("  N - Próxima fila\n");
+                printf("  P - Fila anterior\n");
+                printf("  B - Voltar ao menu do piso\n");
+                printf("  Ou insira o número de uma fila (1-%d) para ir diretamente.\n", piso->num_filas);
+                printf("Escolha uma opção: ");
+                scanf(" %s", opcao);
+
+                if (opcao[0] == 'N' || opcao[0] == 'n') {
+                    if (fila_atual < piso->num_filas - 1) {
+                        fila_atual++;
+                    } else {
+                        printf("\nVocê já está na última fila.\n");
+                    }
+                } else if (opcao[0] == 'P' || opcao[0] == 'p') {
+                    if (fila_atual > 0) {
+                        fila_atual--;
+                    } else {
+                        printf("\nVocê já está na primeira fila.\n");
+                    }
+                } else if (opcao[0] == 'B' || opcao[0] == 'b') {
+                    break;
+                } else if (isdigit(opcao[0])) {
+                    int fila_escolhida = atoi(opcao);
+                    if (fila_escolhida >= 1 && fila_escolhida <= piso->num_filas) {
+                        fila_atual = fila_escolhida - 1;
+                    } else {
+                        printf("\nErro: Fila inválida.\n");
+                    }
+                } else {
+                    printf("\nOpção inválida. Tente novamente.\n");
+                }
+            } while (opcao[0] != 'B' && opcao[0] != 'b');
+        } else if (isdigit(opcao[0])) {
+            int piso_escolhido = atoi(opcao);
+            if (piso_escolhido >= 1 && piso_escolhido <= parque->num_pisos) {
+                piso_atual = piso_escolhido - 1;
+            } else {
+                printf("\nErro: Piso inválido.\n");
+            }
+        } else if (opcao[0] != 'S' && opcao[0] != 's') {
+            printf("\nOpção inválida. Tente novamente.\n");
+        }
+
+    } while (opcao[0] != 'S' && opcao[0] != 's');
+
+    printf("\nSaindo da visualização do parque.\n");
 }
+
+
 
 
 // Função para calcular o valor pago com base nas tarifas
@@ -590,8 +899,8 @@ void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], 
     // Atribuir lugar disponível
     int lugar_atribuido = 0;
     for (int piso = 0; piso < parque->num_pisos && !lugar_atribuido; piso++) {
-        for (int fila = 0; fila < parque->filas && !lugar_atribuido; fila++) {
-            for (int lugar = 0; lugar < parque->lugares_por_fila && !lugar_atribuido; lugar++) {
+        for (int fila = 0; fila < parque->pisos[piso].num_filas && !lugar_atribuido; fila++) {
+            for (int lugar = 0; lugar < parque->pisos[piso].lugares_por_fila[fila] && !lugar_atribuido; lugar++) {
                 Lugar *lugar_atual = &parque->pisos[piso].lugares[fila][lugar];
                 if (lugar_atual->estado == 'L') {
                     // Atualiza o lugar para ocupado
@@ -601,6 +910,8 @@ void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], 
                     // Atualiza o parque
                     parque->pisos[piso].ocupados++;
                     parque->pisos[piso].livres--;
+                    recalcular_estatisticas_parque(parque); // **ALTERAÇÃO**
+
 
                     // Regista o estacionamento
                     Estacionamento *novo_estacionamento = &estacionamentos[*total_estacionamentos];
@@ -656,3 +967,4 @@ void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], 
         printf("Erro: Não há lugares disponíveis no parque.\n");
     }
 }
+

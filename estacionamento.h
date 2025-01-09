@@ -56,11 +56,12 @@ typedef struct lugar {
 
 // Representa um piso do parque de estacionamento.
 typedef struct piso {
-    int numero; // Número do piso
-    Lugar lugares[MAX_FILAS][MAX_LUGARES]; // Matriz de lugares (filas x lugares por fila)
-    int livres; // Número de lugares livres no piso
-    int ocupados; // Número de lugares ocupados no piso
-    int indisponiveis; // Número de lugares indisponíveis no piso
+    int livres;                    // Lugares livres
+    int ocupados;                  // Lugares ocupados
+    int indisponiveis;             // Lugares indisponíveis
+    int num_filas;                 // Número de filas no piso
+    int lugares_por_fila[MAX_FILAS]; // Lugares por fila (tamanho variável por fila)
+    Lugar lugares[MAX_FILAS][MAX_LUGARES]; // Matriz de lugares (baseada no número de filas e lugares por fila)
 } Piso;
 
 // Representa o parque de estacionamento como um todo.
@@ -68,13 +69,12 @@ typedef struct parque {
     char nome[30];                 // Nome do parque
     char morada[50];               // Morada do parque
     int num_pisos;                 // Total de pisos
-    int filas;                     // Número de filas por piso
-    int lugares_por_fila;          // Número de lugares por fila
     Piso pisos[MAX_PISOS];         // Array de pisos
     int total_lugares;             // Total de lugares no parque
     int lugares_ocupados;          // Total de lugares ocupados
     int lugares_livres;            // Total de lugares livres
 } Parque;
+
 
 // Representa um registo de estacionamento de um veículo.
 typedef struct estacionamento {
@@ -121,5 +121,7 @@ void recalcular_estatisticas_parque(Parque *parque);
 //
 void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos, int *ultimo_id);
 
+//
+void configurar_pisos(Parque *parque);
 
 #endif

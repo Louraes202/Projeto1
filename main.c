@@ -149,7 +149,7 @@ int main() {
 
             case 0:
                 // Verifica se o parque está configurado antes de salvar
-                if (parque.num_pisos > 0 && parque.filas > 0 && parque.lugares_por_fila > 0) {
+                if (parque.num_pisos > 0) {
                     guardar_estado_binario(&parque, estacionamentos, total_estacionamentos);
                 }
 
