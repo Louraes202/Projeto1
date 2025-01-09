@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "estacionamento.h"
 
 // ------------------------ Funções do menu  ------------------------
@@ -569,4 +570,89 @@ void exibir_estatisticas_ocupacao(const Parque *parque) {
     printf("  Lugares Livres: %d\n", parque->lugares_livres);
     printf("  Lugares Ocupados: %d\n", parque->lugares_ocupados);
     printf("  Lugares Indisponíveis: %d\n\n", parque->total_lugares - (parque->lugares_livres + parque->lugares_ocupados));
+}
+
+// Função para registar a entrada de um veículo
+void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos, int *ultimo_id) {
+    char matricula[11];
+    printf("Digite a matrícula do veículo (XX-XX-XX): ");
+    scanf("%10s", matricula);
+
+    // Verifica se a matrícula já está associada a um veículo no parque
+    for (int i = 0; i < *total_estacionamentos; i++) {
+        if (strcmp(estacionamentos[i].matricula, matricula) == 0 &&
+            estacionamentos[i].data_saida.ano == 0) { // Veículo ainda estacionado
+            printf("Erro: O veículo com a matrícula %s já está estacionado.\n", matricula);
+            return;
+        }
+    }
+
+    // Atribuir lugar disponível
+    int lugar_atribuido = 0;
+    for (int piso = 0; piso < parque->num_pisos && !lugar_atribuido; piso++) {
+        for (int fila = 0; fila < parque->filas && !lugar_atribuido; fila++) {
+            for (int lugar = 0; lugar < parque->lugares_por_fila && !lugar_atribuido; lugar++) {
+                Lugar *lugar_atual = &parque->pisos[piso].lugares[fila][lugar];
+                if (lugar_atual->estado == 'L') {
+                    // Atualiza o lugar para ocupado
+                    lugar_atual->estado = 'O';
+                    strcpy(lugar_atual->codigo, matricula);
+
+                    // Atualiza o parque
+                    parque->pisos[piso].ocupados++;
+                    parque->pisos[piso].livres--;
+
+                    // Regista o estacionamento
+                    Estacionamento *novo_estacionamento = &estacionamentos[*total_estacionamentos];
+                    (*total_estacionamentos)++;
+                    (*ultimo_id)++;
+
+                    novo_estacionamento->numE = *ultimo_id;
+                    strcpy(novo_estacionamento->matricula, matricula);
+
+                    // Atribuir data e hora
+                    printf("Pretende especificar a data e hora do estacionamento?\n");
+                    printf("1. Sim\n");
+                    printf("2. Não (Automático)\n");
+                    printf("Escolha uma opção: ");
+                    int opcao_data;
+                    scanf("%d", &opcao_data);
+
+                    if (opcao_data == 1) {
+                        printf("Digite a data de entrada (AAAA-MM-DD): ");
+                        scanf("%d-%d-%d", &novo_estacionamento->data_entrada.ano,
+                              &novo_estacionamento->data_entrada.mes,
+                              &novo_estacionamento->data_entrada.dia);
+                        printf("Digite a hora de entrada (HH:MM): ");
+                        scanf("%d:%d", &novo_estacionamento->entrada.hora,
+                              &novo_estacionamento->entrada.min);
+                    } else {
+                        time_t t = time(NULL);
+                        struct tm tm = *localtime(&t);
+                        novo_estacionamento->data_entrada.ano = tm.tm_year + 1900;
+                        novo_estacionamento->data_entrada.mes = tm.tm_mon + 1;
+                        novo_estacionamento->data_entrada.dia = tm.tm_mday;
+                        novo_estacionamento->entrada.hora = tm.tm_hour;
+                        novo_estacionamento->entrada.min = tm.tm_min;
+                    }
+
+                    // Atribuir lugar
+                    sprintf(novo_estacionamento->lugar.codigo, "%d%c%d", piso + 1, 'A' + fila, lugar + 1);
+
+                    printf("Veículo com matrícula %s estacionado com sucesso.\n", matricula);
+                    printf("Lugar atribuído: Piso %d, Fila %c, Lugar %d\n", piso + 1, 'A' + fila, lugar + 1);
+                    printf("Data de entrada: %04d-%02d-%02d, Hora: %02d:%02d\n",
+                           novo_estacionamento->data_entrada.ano, novo_estacionamento->data_entrada.mes,
+                           novo_estacionamento->data_entrada.dia, novo_estacionamento->entrada.hora,
+                           novo_estacionamento->entrada.min);
+
+                    lugar_atribuido = 1;
+                }
+            }
+        }
+    }
+
+    if (!lugar_atribuido) {
+        printf("Erro: Não há lugares disponíveis no parque.\n");
+    }
 }

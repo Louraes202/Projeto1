@@ -22,19 +22,19 @@ typedef struct data {
 } Data;
 
 // Representa um horário no formato hora, minuto e segundo.
-typedef struct horario {
+typedef struct Hora {
     int hora;  // Hora do dia (0 a 23)
     int min;   // Minutos (0 a 59)
     int seg;   // Segundos (0 a 59)
-} Horario;
+} Hora;
 
 // Representa uma tarifa do parque de estacionamento.
 typedef struct tarifa {
     char nome[10];       // Nome descritivo da tarifa (ex: "Diurna")
     char cod_tarifa[4];  // Código identificador da tarifa (ex: "CT1")
     float valor_hora;    // Valor por hora da tarifa
-    Horario inicio;      // Hora de início da tarifa
-    Horario fim;         // Hora de fim da tarifa
+    Hora inicio;      // Hora de início da tarifa
+    Hora fim;         // Hora de fim da tarifa
     char tp_tarifa;      // Tipo da tarifa ('H' para horária, 'D' para diária)
     int dias;            // Número de dias aplicável (usado apenas para tarifas diárias)
 } Tarifa;
@@ -82,8 +82,8 @@ typedef struct estacionamento {
     char matricula[MAX_MATRICULA]; // Matrícula do veículo
     Data data_entrada;             // Data de entrada
     Data data_saida;               // Data de saída (se aplicável)
-    Horario entrada;               // Hora de entrada
-    Horario saida;                 // Hora de saída (se aplicável)
+    Hora entrada;               // Hora de entrada
+    Hora saida;                 // Hora de saída (se aplicável)
     Lugar lugar;                   // Lugar ocupado
     float valor_pago;              // Valor pago (se aplicável)
     char observacoes[50];          // Observações adicionais
@@ -117,5 +117,9 @@ void exibir_estatisticas_ocupacao(const Parque *parque);
 
 //
 void recalcular_estatisticas_parque(Parque *parque);
+
+//
+void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos, int *ultimo_id);
+
 
 #endif

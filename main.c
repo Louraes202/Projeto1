@@ -27,8 +27,9 @@ void exibir_menu_configuracao(Parque *parque) {
 void exibir_menu_registos(Parque *parque) {
     exibir_lugares_por_piso(parque);
     printf("\n> -- Registos --\n");
-    printf("1. Carregar Registos de Ficheiro .txt\n");
-    printf("2. Estatísticas de Ocupação\n"); // Nova opção
+    printf("1. Registar Entrada de Veículo\n");
+    printf("2. Carregar Registos de Ficheiro .txt\n");
+    printf("3. Estatísticas de Ocupação\n");
     printf("0. Voltar atrás\n");
     printf("Escolha uma opção: ");
 }
@@ -117,7 +118,11 @@ int main() {
                     getchar();
 
                     switch (opcao_registos) {
-                        case 1: { // Carregar registos de ficheiro .txt
+                        case 1: { // Registar entrada de veículo
+                            registar_entrada_veiculo(&parque, estacionamentos, &total_estacionamentos, &ultimo_id);
+                            break;
+                        }
+                        case 2: { // Carregar registos de ficheiro
                             char nome_ficheiro[50];
                             printf("Digite o nome do ficheiro .txt a carregar (incluindo extensão): ");
                             scanf("%49s", nome_ficheiro);
@@ -128,17 +133,19 @@ int main() {
                             }
                             break;
                         }
-                        case 2: // Estatísticas de Ocupação
+                        case 3: // Estatísticas de ocupação
                             exibir_estatisticas_ocupacao(&parque);
                             break;
                         case 0:
                             printf("Voltando ao menu principal...\n");
                             break;
+
                         default:
                             printf("Opção inválida. Tente novamente.\n");
                     }
                 } while (opcao_registos != 0);
                 break;
+
 
             case 0:
                 // Verifica se o parque está configurado antes de salvar
