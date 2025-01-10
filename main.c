@@ -30,6 +30,9 @@ void exibir_menu_registos(Parque *parque) {
     printf("1. Registar Entrada de Veículo\n");
     printf("2. Carregar Registos de Ficheiro .txt\n");
     printf("3. Estatísticas de Ocupação\n");
+    printf("4. Consultar Registo\n");
+    printf("5. Eliminar Registo\n");
+    printf("6. Alterar Registo\n");
     printf("0. Voltar atrás\n");
     printf("Escolha uma opção: ");
 }
@@ -136,6 +139,30 @@ int main() {
                         case 3: // Estatísticas de ocupação
                             exibir_estatisticas_ocupacao(&parque);
                             break;
+                        case 4: { // Consultar registo
+                            int numero_entrada;
+                            printf("Digite o número de entrada a consultar: ");
+                            scanf("%d", &numero_entrada);
+                            consultar_registo(numero_entrada, estacionamentos, total_estacionamentos);
+                            break;
+                        }
+                        case 5: { // Eliminar registo
+                            int numero_entrada;
+                            printf("Digite o número de entrada a eliminar: ");
+                            scanf("%d", &numero_entrada);
+                            eliminar_registo(numero_entrada, &parque, estacionamentos, &total_estacionamentos);
+                            break;
+                        }
+                        case 6: { // Alterar registo
+                            int numero_entrada;
+                            char novo_lugar[10];
+                            printf("Digite o número de entrada a alterar: ");
+                            scanf("%d", &numero_entrada);
+                            printf("Digite o novo lugar (Formato PisoFilaLugar, ex: 2B5): ");
+                            scanf("%s", novo_lugar);
+                            alterar_registo(numero_entrada, novo_lugar, &parque, estacionamentos, total_estacionamentos);
+                            break;
+                        }
                         case 0:
                             printf("Voltando ao menu principal...\n");
                             break;
