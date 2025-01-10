@@ -111,3 +111,55 @@
             - Registos com dados incompatíveis são ignorados e reportados.
         - Registos de lugares já ocupados ou indisponíveis também são descartados.
 
+### **Verificação dos Requisitos da Alínea 4a**
+
+1. **Registo de entrada de veículo:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `registar_entrada_veiculo`.
+    - **Descrição:** Permite registar a entrada de um veículo, atribuindo automaticamente um lugar disponível no parque.
+        - O utilizador pode especificar ou deixar que o sistema determine a data e hora de entrada.
+        - A matrícula do veículo é verificada para evitar duplicados.
+        - O lugar atribuído é marcado como ocupado no parque e associado ao veículo.
+2. **Atualização da ocupação do parque:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `recalcular_estatisticas_parque`.
+    - **Descrição:** Recalcula automaticamente os lugares livres, ocupados e indisponíveis após o registo de entrada de um veículo.
+3. **Persistência de dados:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `guardar_estado_binario`.
+    - **Descrição:** Após a entrada de um veículo, o estado atualizado do parque é gravado no ficheiro binário.
+4. **Validações:**
+    - **Estado:** ✅ Implementado.
+    - **Descrição:**
+        - Matrículas duplicadas são rejeitadas.
+        - Caso não haja lugares disponíveis, o utilizador é informado.
+        - Atribuição de lugares é garantida de forma eficiente, respeitando a configuração do parque.
+
+---
+
+### **Verificação dos Requisitos da Alínea 4b**
+
+1. **Consulta de registos de estacionamento:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `consultar_registo`.
+    - **Descrição:** Permite visualizar os detalhes de um registo específico, identificado pelo número de entrada, incluindo a matrícula, lugar atribuído e horário de entrada.
+2. **Alteração de registo de estacionamento:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `alterar_registo`.
+    - **Descrição:**
+        - Permite alterar o lugar atribuído a um registo existente, garantindo que o novo lugar esteja livre.
+        - Atualiza a ocupação do parque para refletir a mudança.
+3. **Eliminação de registo de estacionamento:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `eliminar_registo`.
+    - **Descrição:** Remove um registo de estacionamento, liberando o lugar associado no parque e atualizando a ocupação.
+4. **Atualização da ocupação do parque:**
+    - **Estado:** ✅ Implementado.
+    - **Função:** `recalcular_estatisticas_parque`.
+    - **Descrição:** Após alterações ou remoções de registos, as estatísticas de ocupação do parque são recalculadas para refletir o estado atual.
+5. **Validações e tratamento de erros:**
+    - **Estado:** ✅ Implementado.
+    - **Descrição:**
+        - Garantia de que apenas registos existentes podem ser consultados, alterados ou eliminados.
+        - Verificação de que o novo lugar atribuído está livre antes de efetuar alterações.
+        - Mensagens claras ao utilizador em caso de erros ou tentativas inválidas.
