@@ -124,4 +124,13 @@ void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], 
 //
 void configurar_pisos(Parque *parque);
 
+//
+void consultar_registo(int numero_entrada, const Estacionamento estacionamentos[], int total_estacionamentos);
+
+//
+void eliminar_registo(int numero_entrada, Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos);
+
+//
+void alterar_registo(int numero_entrada, const char *novo_lugar, Parque *parque, Estacionamento estacionamentos[], int total_estacionamentos);
+
 #endif

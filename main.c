@@ -153,6 +153,7 @@ int main() {
                             eliminar_registo(numero_entrada, &parque, estacionamentos, &total_estacionamentos);
                             break;
                         }
+
                         case 6: { // Alterar registo
                             int numero_entrada;
                             char novo_lugar[10];
@@ -163,6 +164,7 @@ int main() {
                             alterar_registo(numero_entrada, novo_lugar, &parque, estacionamentos, total_estacionamentos);
                             break;
                         }
+
                         case 0:
                             printf("Voltando ao menu principal...\n");
                             break;

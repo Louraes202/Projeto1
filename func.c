@@ -22,7 +22,6 @@ void exibir_lugares_por_piso(const Parque *parque) {
 // ------------------------ Manipulação de ficheiros do Parque ------------------------
 
 // Função para gravar a configuração no ficheiro
-// Função para gravar a configuração no ficheiro
 void gravar_configuracao_parque(const Parque *parque) {
     FILE *file = fopen("config_parque.txt", "w");
     if (file == NULL) {
@@ -462,7 +461,6 @@ void limpar_memoria(Parque *parque, Estacionamento estacionamentos[], int *total
     printf("Memória do programa e ficheiros associados foram limpos.\n");
 }
 
-// ------------------------ Configuração do Parque ------------------------
 
 // Função para configurar os pisos do parque
 void configurar_pisos(Parque *parque) {
@@ -962,115 +960,68 @@ void registar_entrada_veiculo(Parque *parque, Estacionamento estacionamentos[], 
 }
 
 // Função para consultar um registo de estacionamento
-void consultar_registo(const Estacionamento estacionamentos[], int total_estacionamentos) {
-    int numero_entrada;
-    printf("Digite o número de entrada do registo a consultar: ");
-    scanf("%d", &numero_entrada);
-
+void consultar_registo(int numero_entrada, const Estacionamento estacionamentos[], int total_estacionamentos) {
     for (int i = 0; i < total_estacionamentos; i++) {
         if (estacionamentos[i].numE == numero_entrada) {
-            printf("\n--- Detalhes do Registo ---\n");
+            printf("Detalhes do registo:\n");
             printf("Número de Entrada: %d\n", estacionamentos[i].numE);
             printf("Matrícula: %s\n", estacionamentos[i].matricula);
-            printf("Data de Entrada: %04d-%02d-%02d\n", estacionamentos[i].data_entrada.ano,
-                   estacionamentos[i].data_entrada.mes, estacionamentos[i].data_entrada.dia);
-            printf("Hora de Entrada: %02d:%02d\n", estacionamentos[i].entrada.hora, estacionamentos[i].entrada.min);
-            printf("Lugar Atribuído: %s\n", estacionamentos[i].lugar.codigo);
+            printf("Lugar: Piso %d, Fila %c, Lugar %d\n", estacionamentos[i].lugar.num_piso, estacionamentos[i].lugar.fila, estacionamentos[i].lugar.lugar);
+            printf("Data de Entrada: %02d/%02d/%04d\n", estacionamentos[i].data_entrada.dia, estacionamentos[i].data_entrada.mes, estacionamentos[i].data_entrada.ano);
             return;
         }
     }
-    printf("Erro: Registo com número de entrada %d não encontrado.\n", numero_entrada);
+    printf("Registo não encontrado.\n");
 }
 
-// Função para eliminar um registo de estacionamento
-void eliminar_registo(Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos) {
-    int numero_entrada;
-    printf("Digite o número de entrada do registo a eliminar: ");
-    scanf("%d", &numero_entrada);
 
+// Função para eliminar um registo de estacionamento
+void eliminar_registo(int numero_entrada, Parque *parque, Estacionamento estacionamentos[], int *total_estacionamentos) {
     for (int i = 0; i < *total_estacionamentos; i++) {
         if (estacionamentos[i].numE == numero_entrada) {
-            // Liberar o lugar ocupado
-            int piso, lugar;
-            char fila;
-            sscanf(estacionamentos[i].lugar.codigo, "%d%c%d", &piso, &fila, &lugar);
+            // Marca o lugar como livre no parque
+            Lugar *lugar = &estacionamentos[i].lugar;
+            parque->pisos[lugar->num_piso - 1].lugares[lugar->fila - 'A'][lugar->lugar - 1].estado = 'L';
 
-            Piso *piso_atual = &parque->pisos[piso - 1];
-            Lugar *lugar_atual = &piso_atual->lugares[fila - 'A'][lugar - 1];
-
-            if (lugar_atual->estado == 'O') {
-                lugar_atual->estado = 'L';
-                memset(lugar_atual->codigo, 0, sizeof(lugar_atual->codigo));
-
-                piso_atual->ocupados--;
-                piso_atual->livres++;
-                recalcular_estatisticas_parque(parque);
-            }
-
-            // Remover o registo deslocando os restantes
+            // Remove o registo deslocando os restantes para preencher o espaço
             for (int j = i; j < *total_estacionamentos - 1; j++) {
                 estacionamentos[j] = estacionamentos[j + 1];
             }
             (*total_estacionamentos)--;
 
-            printf("Registo com número de entrada %d eliminado com sucesso.\n", numero_entrada);
+            printf("Registo com número de entrada %d foi eliminado com sucesso.\n", numero_entrada);
             return;
         }
     }
-    printf("Erro: Registo com número de entrada %d não encontrado.\n", numero_entrada);
+    printf("Registo não encontrado.\n");
 }
 
-// Função para alterar um registo de estacionamento
-void alterar_registo(Parque *parque, Estacionamento estacionamentos[], int total_estacionamentos) {
-    int numero_entrada;
-    printf("Digite o número de entrada do registo a alterar: ");
-    scanf("%d", &numero_entrada);
 
+// Função para alterar um registo de estacionamento
+void alterar_registo(int numero_entrada, const char *novo_lugar, Parque *parque, Estacionamento estacionamentos[], int total_estacionamentos) {
     for (int i = 0; i < total_estacionamentos; i++) {
         if (estacionamentos[i].numE == numero_entrada) {
-            // Liberar o lugar atual
-            int piso_atual, lugar_atual;
-            char fila_atual;
-            sscanf(estacionamentos[i].lugar.codigo, "%d%c%d", &piso_atual, &fila_atual, &lugar_atual);
+            // Liberta o lugar atual
+            Lugar *lugar_atual = &estacionamentos[i].lugar;
+            parque->pisos[lugar_atual->num_piso - 1].lugares[lugar_atual->fila - 'A'][lugar_atual->lugar - 1].estado = 'L';
 
-            Piso *piso = &parque->pisos[piso_atual - 1];
-            Lugar *lugar = &piso->lugares[fila_atual - 'A'][lugar_atual - 1];
+            // Atualiza para o novo lugar
+            int piso, lugar_num;
+            char fila;
+            sscanf(novo_lugar, "%d%c%d", &piso, &fila, &lugar_num);
 
-            if (lugar->estado == 'O') {
-                lugar->estado = 'L';
-                memset(lugar->codigo, 0, sizeof(lugar->codigo));
+            Lugar *novo = &parque->pisos[piso - 1].lugares[fila - 'A'][lugar_num - 1];
+            if (novo->estado == 'L') {
+                novo->estado = 'O';
+                strncpy(novo->codigo, lugar_atual->codigo, MAX_CODIGO);
+                *lugar_atual = *novo; // Atualiza o lugar no registo
 
-                piso->ocupados--;
-                piso->livres++;
-            }
-
-            // Reatribuir um novo lugar
-            int novo_piso, novo_lugar;
-            char nova_fila;
-            printf("Digite o novo lugar (formato Piso-Fila-Lugar, ex: 1A1): ");
-            scanf("%d%c%d", &novo_piso, &nova_fila, &novo_lugar);
-
-            Piso *novo_piso_ptr = &parque->pisos[novo_piso - 1];
-            Lugar *novo_lugar_ptr = &novo_piso_ptr->lugares[nova_fila - 'A'][novo_lugar - 1];
-
-            if (novo_lugar_ptr->estado == 'L') {
-                novo_lugar_ptr->estado = 'O';
-                strcpy(novo_lugar_ptr->codigo, estacionamentos[i].matricula);
-
-                novo_piso_ptr->ocupados++;
-                novo_piso_ptr->livres--;
-
-                // Atualizar o registo
-                sprintf(estacionamentos[i].lugar.codigo, "%d%c%d", novo_piso, nova_fila, novo_lugar);
-
-                recalcular_estatisticas_parque(parque);
-                printf("Registo alterado com sucesso para o novo lugar %d%c%d.\n", novo_piso, nova_fila, novo_lugar);
-                return;
+                printf("Lugar atualizado com sucesso para %s.\n", novo_lugar);
             } else {
-                printf("Erro: O novo lugar especificado já está ocupado ou indisponível.\n");
-                return;
+                printf("O novo lugar especificado não está disponível.\n");
             }
+            return;
         }
     }
-    printf("Erro: Registo com número de entrada %d não encontrado.\n", numero_entrada);
+    printf("Registo não encontrado.\n");
 }
